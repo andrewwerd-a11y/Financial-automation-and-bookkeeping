@@ -1,25 +1,36 @@
 import { useEffect, useState } from 'react';
-import { api, upload } from '../api/client';
+import { listDocuments, uploadDocument } from '../api/client';
+import type { Document } from '../types';
 
 export function DocumentsPage() {
+  const [docs, setDocs] = useState<Document[]>([]);
   const [file, setFile] = useState<File | null>(null);
-  const [docs, setDocs] = useState<Array<{ id: string; original_filename: string; uploaded_at: string }>>([]);
+  const [notes, setNotes] = useState('');
+  const [message, setMessage] = useState('');
 
-  const load = async () => setDocs(await api('/documents'));
+  const load = async () => setDocs(await listDocuments());
   useEffect(() => { void load(); }, []);
 
   const submit = async () => {
     if (!file) return;
-    const form = new FormData();
-    form.append('file', file);
-    await upload('/documents/upload', form);
+    await uploadDocument(file, notes);
+    setMessage('Document uploaded.');
+    setNotes('');
     await load();
   };
 
-  return <div>
-    <h2>Evidence Vault</h2>
-    <input type="file" accept=".pdf,.jpg,.jpeg,.png" onChange={(e) => setFile(e.target.files?.[0] ?? null)} />
-    <button onClick={() => void submit()}>Upload</button>
-    <ul>{docs.map((d) => <li key={d.id}>{d.original_filename} ({d.uploaded_at})</li>)}</ul>
-  </div>;
+  return (
+    <div>
+      <h2>Documents</h2>
+      <input type="file" onChange={(e) => setFile(e.target.files?.[0] ?? null)} />
+      <input placeholder="Notes (optional)" value={notes} onChange={(e) => setNotes(e.target.value)} />
+      <button onClick={() => void submit()}>Upload Document</button>
+      <button onClick={() => void load()}>Refresh</button>
+      {message && <p>{message}</p>}
+      <table>
+        <thead><tr><th>File</th><th>Type</th><th>Uploaded</th><th>Notes</th></tr></thead>
+        <tbody>{docs.map((doc) => <tr key={doc.id}><td>{doc.file_name}</td><td>{doc.mime_type}</td><td>{doc.uploaded_at}</td><td>{doc.notes}</td></tr>)}</tbody>
+      </table>
+    </div>
+  );
 }

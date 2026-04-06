@@ -1,57 +1,87 @@
-# Financial Intake, Evidence, Classification, Review, and Tax-Prep Platform (Phase 0)
+# Financial Intake / Bookkeeping Platform
 
-Phase 0 is a **tax-season rescue MVP** focused on reliable intake, evidence preservation, reviewability, and practical exports.
+## Phase 1 — Core intake backbone + basic frontend shell
 
-## What Phase 0 includes
+This phase provides a **minimal full-stack internal tool** to:
+1. upload CSV files,
+2. upload receipt/document files,
+3. create manual transactions,
+4. persist core data in SQLite,
+5. operate all flows from a plain frontend shell.
 
-- CSV upload with preview + column mapping + processing
-- Raw import row preservation (`import_job_raw_rows`)
-- Manual transaction entry
-- Document upload (PDF/JPG/PNG) and evidence linking
-- Unified ledger with filters
-- Rules-driven category/tax-treatment suggestions
-- Review queue and review decisions
-- Summary reports and CSV exports
+No advanced automation, OCR, classification, reconciliation, tax logic, auth, or connector work is included in this phase.
 
-## Architecture (modular, Phase-0 scoped)
+---
 
-- `backend/src/modules/imports` — CSV preview/process + mapping normalization helpers
-- `backend/src/modules/documents` — upload + link evidence records
-- `backend/src/modules/transactions` — create/query/edit transactions
-- `backend/src/modules/rules` — heuristic rules engine (tax-year version-ready)
-- `backend/src/modules/review` — review queue + decision persistence
-- `backend/src/modules/reports` — summary aggregation service + route
-- `backend/src/modules/exports` — export job creation + CSV file output
-- `backend/src/modules/lookups` — categories/activities lookup
-- `backend/src/db` — schema, DB bootstrap/init, seed
-- `frontend/src/pages` — ledger/manual/import/documents/review/reports screens
+## Tech stack
 
-## Local setup (normal development)
+- Frontend: React + TypeScript + Vite
+- Backend: Node.js + TypeScript + Express
+- Database: SQLite (`better-sqlite3`)
+- API: REST
 
-### Prerequisites
+---
 
-- Node.js 20+
-- npm 10+
+## Data model (Phase 1)
 
-### Install
+Implemented tables:
+- `transactions`
+- `source_files`
+- `documents`
+- `import_rows_raw`
+- `reviews` (placeholder)
+- `export_jobs` (placeholder)
+
+---
+
+## What’s included in Phase 1
+
+### Backend
+- DB bootstrap/init flow
+- CSV upload endpoint (`POST /api/imports/csv`)
+- CSV parse + conservative normalization
+- Raw CSV row archival
+- Normalized transaction creation from valid CSV rows
+- Manual transaction create endpoint (`POST /api/transactions`)
+- Transactions list endpoint (`GET /api/transactions`)
+- Imports/source files list endpoint (`GET /api/imports`)
+- Document upload endpoint (`POST /api/documents/upload`)
+- Documents list endpoint (`GET /api/documents`)
+- Health endpoint (`GET /health`)
+- Basic dashboard/system endpoints (`GET /api/dashboard`, `GET /api/system/status`)
+
+### Frontend (plain operational shell)
+- Left sidebar navigation
+- Top header/status area
+- Dashboard screen
+- Transactions screen (table + manual entry form)
+- Imports screen (CSV upload + list)
+- Documents screen (upload + list)
+- Settings/System screen (health/status)
+
+---
+
+## Local setup
+
+### 1) Install dependencies
 
 ```bash
 npm install
 ```
 
-### Initialize database schema
+### 2) Initialize local DB schema
 
 ```bash
 npm run db:init -w backend
 ```
 
-### Seed sample data
+### 3) (Optional) seed starter row
 
 ```bash
 npm run seed -w backend
 ```
 
-### Run backend
+### 4) Run backend
 
 ```bash
 npm run dev -w backend
@@ -59,7 +89,7 @@ npm run dev -w backend
 
 Backend default URL: `http://localhost:4000`
 
-### Run frontend (separate terminal)
+### 5) Run frontend (separate terminal)
 
 ```bash
 npm run dev -w frontend
@@ -67,34 +97,51 @@ npm run dev -w frontend
 
 Frontend default URL: `http://localhost:5173`
 
-## Testing
-
-Backend tests include unit, integration, and smoke workflow coverage.
+### 6) Run backend tests
 
 ```bash
 npm run test -w backend
 ```
 
-## DB/runtime hardening notes
+---
 
-- DB path is configurable via `FIN_DB_FILE`; default is `backend/data/phase0.db`.
-- DB schema bootstrap is idempotent (`CREATE TABLE IF NOT EXISTS`).
-- Seed execution is idempotent (`seedIfEmpty`).
-- Foreign keys are enabled.
-- Server is split into `createApp()` and `startServer()` for testability.
+## API summary
 
-## Known Phase 0 limitations (intentional)
+- `GET /health`
+- `GET /api/system/status`
+- `GET /api/dashboard`
+- `GET /api/transactions`
+- `POST /api/transactions`
+- `GET /api/imports`
+- `POST /api/imports/csv`
+- `GET /api/documents`
+- `POST /api/documents/upload`
 
-- No bank/card connectors yet (Phase 2)
-- No OCR extraction pipeline yet (stores originals + placeholder field)
-- No multi-user/workflow approvals yet
-- Tax treatment is heuristic guidance, not filing-grade tax computation
-- Export formats are practical CSVs, not full accountant packet automation
+---
 
-## Future extension points (without Phase 0 rewrite)
+## Known limitations (intentional for Phase 1)
 
-- Tax-year rule packs and versioned rules
-- Vendor memory/rule persistence enhancements
-- Connector adapters (bank/email/marketplace)
-- Richer evidence strength/conflict scoring
-- Multi-entity and multi-user ownership dimensions
+Deferred to later phases:
+- auth / users
+- connectors (bank/email/marketplace)
+- OCR and document parsing
+- document-to-transaction matching
+- duplicate detection workflows
+- classification/tax/review engines
+- export generation workflows
+- advanced reports
+- multi-business and policy controls
+- polished UI/branding
+
+---
+
+## Packaging
+
+To create a distributable zip bundle:
+
+```bash
+./scripts/package_zip.sh
+```
+
+Output:
+- `dist/phase1-core-intake-backbone.zip`

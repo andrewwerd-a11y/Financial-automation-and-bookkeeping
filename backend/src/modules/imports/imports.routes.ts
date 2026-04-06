@@ -1,89 +1,72 @@
+import fs from 'node:fs';
 import { Router } from 'express';
 import multer from 'multer';
 import Papa from 'papaparse';
 import { db } from '../../db/client.js';
 import { makeId } from '../../shared/id.js';
-import { evaluateRules } from '../rules/rulesEngine.js';
-import { normalizeCsvRow, type CsvMapping } from './importHelpers.js';
+import { normalizeCsvRow } from './importHelpers.js';
 
-const upload = multer({ storage: multer.memoryStorage() });
+const upload = multer({ storage: multer.diskStorage({
+  destination: (_req, _file, cb) => cb(null, 'uploads/csv'),
+  filename: (_req, file, cb) => cb(null, `${Date.now()}-${file.originalname.replace(/\s+/g, '_')}`)
+}) });
+
 const router = Router();
 
-router.post('/csv/preview', upload.single('file'), (req, res) => {
-  if (!req.file) return res.status(400).json({ message: 'Missing file' });
-  const text = req.file.buffer.toString('utf-8');
-  const parsed = Papa.parse<Record<string, string>>(text, { header: true, skipEmptyLines: true });
-  res.json({ columns: parsed.meta.fields ?? [], sampleRows: parsed.data.slice(0, 20) });
+router.get('/', (_req, res) => {
+  const rows = db.prepare("SELECT * FROM source_files WHERE kind = 'csv' ORDER BY uploaded_at DESC").all();
+  res.json(rows);
 });
 
-router.post('/csv/process', upload.single('file'), (req, res) => {
-  if (!req.file) return res.status(400).json({ message: 'Missing file' });
+router.post('/csv', upload.single('file'), (req, res) => {
+  if (!req.file) return res.status(400).json({ message: 'Missing csv file' });
 
-  const mapping = JSON.parse((req.body.mapping as string) ?? '{}') as CsvMapping;
-  const mapperPresetName = (req.body.mapperPresetName as string | undefined) ?? null;
+  const sourceFileId = makeId('src');
+  db.prepare(`INSERT INTO source_files
+    (id, kind, original_name, stored_path, mime_type, size_bytes)
+    VALUES (?, 'csv', ?, ?, ?, ?)`).run(
+    sourceFileId,
+    req.file.originalname,
+    req.file.path,
+    req.file.mimetype || 'text/csv',
+    req.file.size
+  );
 
-  const importId = makeId('imp');
-  db.prepare(`INSERT INTO import_jobs
-    (id, job_type, source_name, original_filename, import_status, metadata_json, raw_row_archive_reference)
-    VALUES (?, 'csv_upload', ?, ?, 'processing', ?, ?)`)
-    .run(importId, 'manual_upload', req.file.originalname, JSON.stringify({ mapping, mapperPresetName }), `import_job_raw_rows:${importId}`);
+  const csvText = fs.readFileSync(req.file.path, 'utf-8');
+  const parsed = Papa.parse<Record<string, string>>(csvText, {
+    header: true,
+    skipEmptyLines: true
+  });
 
-  const parsed = Papa.parse<Record<string, string>>(req.file.buffer.toString('utf-8'), { header: true, skipEmptyLines: true });
+  let importedCount = 0;
+  let skippedCount = 0;
 
-  const txInsert = db.prepare(`INSERT INTO transactions (
-      id, date, vendor, amount, direction, source_account, source_type, raw_description,
-      activity_or_business, category, tax_treatment_suggestion, treatment_explanation,
-      confidence_score, review_status, duplicate_key
-    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`);
-  const rawInsert = db.prepare('INSERT INTO import_job_raw_rows (id, import_job_id, row_index, raw_row_json, normalized_hash) VALUES (?, ?, ?, ?, ?)');
-
-  let imported = 0;
-  let duplicates = 0;
+  const insertRaw = db.prepare('INSERT INTO import_rows_raw (id, source_file_id, row_index, raw_payload_json) VALUES (?, ?, ?, ?)');
+  const insertTx = db.prepare(`INSERT INTO transactions
+    (id, date, vendor, amount, description_raw, source_type, source_file_id, status)
+    VALUES (?, ?, ?, ?, ?, 'csv_import', ?, 'active')`);
 
   parsed.data.forEach((row, idx) => {
-    rawInsert.run(makeId('raw'), importId, idx, JSON.stringify(row), null);
+    insertRaw.run(makeId('raw'), sourceFileId, idx, JSON.stringify(row));
 
-    const normalized = normalizeCsvRow(row, mapping);
-    if (!normalized) return;
-
-    const existing = db.prepare('SELECT id FROM transactions WHERE duplicate_key = ?').get(normalized.duplicateKey) as { id: string } | undefined;
-    if (existing) {
-      duplicates += 1;
+    const normalized = normalizeCsvRow(row);
+    if (!normalized) {
+      skippedCount += 1;
       return;
     }
 
-    const rule = evaluateRules({
-      vendor: normalized.vendor,
-      rawDescription: normalized.rawDescription,
-      amount: normalized.amount,
-      direction: normalized.direction,
-      activity: undefined,
-      category: undefined
-    });
-
-    txInsert.run(
+    insertTx.run(
       makeId('txn'),
       normalized.date,
       normalized.vendor,
       normalized.amount,
-      normalized.direction,
-      normalized.sourceAccount,
-      'csv',
-      normalized.rawDescription ?? null,
-      null,
-      rule.categorySuggestion ?? null,
-      rule.suggestion,
-      rule.explanation,
-      rule.confidence,
-      rule.reviewFlag ? 'pending' : 'approved',
-      normalized.duplicateKey
+      normalized.descriptionRaw || null,
+      sourceFileId
     );
-    imported += 1;
+    importedCount += 1;
   });
 
-  db.prepare('UPDATE import_jobs SET import_status = ?, completed_at = CURRENT_TIMESTAMP WHERE id = ?').run('completed', importId);
-
-  res.json({ importId, imported, duplicates, totalRows: parsed.data.length });
+  res.status(201).json({ sourceFileId, importedCount, skippedCount, totalRows: parsed.data.length });
 });
 
 export default router;

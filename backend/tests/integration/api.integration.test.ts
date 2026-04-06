@@ -4,98 +4,80 @@ import { mkdtempSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import path from 'node:path';
 
-const dbDir = mkdtempSync(path.join(tmpdir(), 'phase0-int-'));
+const dbDir = mkdtempSync(path.join(tmpdir(), 'phase1-int-'));
 process.env.FIN_DB_FILE = path.join(dbDir, 'integration.db');
 
 const { createApp } = await import('../../src/server.js');
 const { db } = await import('../../src/db/client.js');
-
 const app = createApp();
 
-let createdTransactionId = '';
-let uploadedDocumentId = '';
+let txId = '';
+let csvSourceFileId = '';
+let docId = '';
 
 beforeAll(() => {
-  // app creation initializes db and seed.
+  // app initialization handled by createApp
 });
 
-describe('Phase 0 integration APIs', () => {
-  it('creates manual transaction', async () => {
-    const res = await request(app).post('/api/transactions').send({
-      date: '2026-02-01',
-      vendor: 'Manual Entry Vendor',
-      amount: 88,
-      direction: 'expense',
-      sourceAccount: 'Manual Account',
-      sourceType: 'manual',
-      category: 'office_supplies'
+describe('phase 1 api integration', () => {
+  it('creates and lists manual transactions', async () => {
+    const create = await request(app).post('/api/transactions').send({
+      date: '2026-04-01',
+      vendor: 'Manual Vendor',
+      amount: 100.25,
+      description_raw: 'Manual test row'
     });
 
+    expect(create.status).toBe(201);
+    txId = create.body.id;
+
+    const list = await request(app).get('/api/transactions');
+    expect(list.status).toBe(200);
+    expect(list.body.some((row: { id: string }) => row.id === txId)).toBe(true);
+  });
+
+  it('uploads csv and stores source file + raw rows + normalized transactions', async () => {
+    const csvPath = path.join(dbDir, 'input.csv');
+    writeFileSync(csvPath, 'Date,Vendor,Amount,Description\n2026-04-02,Bookstore,18.75,Books\ninvalid,No Amount,,skip\n');
+
+    const res = await request(app).post('/api/imports/csv').attach('file', csvPath);
     expect(res.status).toBe(201);
-    createdTransactionId = res.body.id;
-    expect(createdTransactionId).toBeTruthy();
+    expect(res.body.importedCount).toBe(1);
+    expect(res.body.skippedCount).toBe(1);
+    csvSourceFileId = res.body.sourceFileId;
+
+    const source = db.prepare('SELECT * FROM source_files WHERE id = ?').get(csvSourceFileId);
+    expect(source).toBeTruthy();
+
+    const rawCount = db.prepare('SELECT COUNT(*) as count FROM import_rows_raw WHERE source_file_id = ?').get(csvSourceFileId) as { count: number };
+    expect(rawCount.count).toBe(2);
+
+    const txCount = db.prepare("SELECT COUNT(*) as count FROM transactions WHERE source_type = 'csv_import' AND source_file_id = ?").get(csvSourceFileId) as { count: number };
+    expect(txCount.count).toBe(1);
   });
 
-  it('processes CSV import and preserves raw rows', async () => {
-    const csvPath = path.join(dbDir, 'sample.csv');
-    writeFileSync(csvPath, 'Date,Amount,Vendor,Description,Account\n2026-02-10,45.50,USPS,Shipping label,Card\n');
+  it('uploads and lists documents', async () => {
+    const filePath = path.join(dbDir, 'receipt.pdf');
+    writeFileSync(filePath, 'fake receipt');
 
-    const res = await request(app)
-      .post('/api/imports/csv/process')
-      .field('mapping', JSON.stringify({ date: 'Date', amount: 'Amount', vendor: 'Vendor', description: 'Description', sourceAccount: 'Account' }))
-      .field('mapperPresetName', 'test-mapper')
-      .attach('file', csvPath);
-
-    expect(res.status).toBe(200);
-    expect(res.body.imported).toBe(1);
-
-    const rawRows = db.prepare('SELECT COUNT(*) as count FROM import_job_raw_rows WHERE import_job_id = ?').get(res.body.importId) as { count: number };
-    expect(rawRows.count).toBe(1);
-  });
-
-  it('persists document metadata and links evidence', async () => {
-    const docPath = path.join(dbDir, 'receipt.png');
-    writeFileSync(docPath, 'fake-image-data');
-
-    const upload = await request(app).post('/api/documents/upload').attach('file', docPath);
+    const upload = await request(app).post('/api/documents/upload').field('notes', 'phase1').attach('file', filePath);
     expect(upload.status).toBe(201);
-    uploadedDocumentId = upload.body.id;
+    docId = upload.body.documentId;
 
-    const link = await request(app).post('/api/documents/link').send({
-      transactionId: createdTransactionId,
-      documentId: uploadedDocumentId,
-      notes: 'receipt link'
-    });
-    expect(link.status).toBe(201);
-
-    const linked = db.prepare('SELECT * FROM evidence_links WHERE transaction_id = ? AND document_id = ?').get(createdTransactionId, uploadedDocumentId);
-    expect(linked).toBeTruthy();
+    const docs = await request(app).get('/api/documents');
+    expect(docs.status).toBe(200);
+    expect(docs.body.some((doc: { id: string }) => doc.id === docId)).toBe(true);
   });
 
-  it('persists review decision and updates transaction', async () => {
-    const res = await request(app).post('/api/review/decision').send({
-      transactionId: createdTransactionId,
-      newCategory: 'office_supplies',
-      newTreatment: 'likely_current_year_business_expense',
-      reviewerNote: 'looks good',
-      decisionType: 'approve'
-    });
+  it('lists csv imports and dashboard counts', async () => {
+    const imports = await request(app).get('/api/imports');
+    expect(imports.status).toBe(200);
+    expect(imports.body.length).toBeGreaterThan(0);
 
-    expect(res.status).toBe(201);
-
-    const decision = db.prepare('SELECT * FROM review_decisions WHERE transaction_id = ? ORDER BY created_at DESC LIMIT 1').get(createdTransactionId) as { decision_type: string };
-    expect(decision.decision_type).toBe('approve');
-  });
-
-  it('generates report summary and export job', async () => {
-    const summary = await request(app).get('/api/reports/summary');
-    expect(summary.status).toBe(200);
-    expect(summary.body.unresolvedCount).toBeTruthy();
-
-    const exp = await request(app).post('/api/exports/summary-category');
-    expect(exp.status).toBe(200);
-
-    const job = db.prepare('SELECT * FROM export_jobs WHERE id = ?').get(exp.body.jobId);
-    expect(job).toBeTruthy();
+    const dashboard = await request(app).get('/api/dashboard');
+    expect(dashboard.status).toBe(200);
+    expect(dashboard.body.totalTransactions).toBeTruthy();
+    expect(dashboard.body.totalDocuments).toBeTruthy();
+    expect(dashboard.body.totalSourceFiles).toBeTruthy();
   });
 });

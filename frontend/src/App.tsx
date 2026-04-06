@@ -1,28 +1,33 @@
 import { useState } from 'react';
-import { LedgerPage } from './pages/LedgerPage';
-import { ManualEntryPage } from './pages/ManualEntryPage';
-import { ImportPage } from './pages/ImportPage';
+import { DashboardPage } from './pages/DashboardPage';
+import { TransactionsPage } from './pages/TransactionsPage';
+import { ImportsPage } from './pages/ImportsPage';
 import { DocumentsPage } from './pages/DocumentsPage';
-import { ReviewPage } from './pages/ReviewPage';
-import { ReportsPage } from './pages/ReportsPage';
+import { SettingsPage } from './pages/SettingsPage';
 
-const tabs = ['ledger', 'manual', 'import', 'documents', 'review', 'reports'] as const;
+const nav = ['dashboard', 'transactions', 'imports', 'documents', 'settings'] as const;
 
 export default function App() {
-  const [tab, setTab] = useState<(typeof tabs)[number]>('ledger');
+  const [active, setActive] = useState<(typeof nav)[number]>('dashboard');
 
   return (
-    <main>
-      <h1>Phase 0 Financial Intake & Evidence Platform</h1>
-      <nav>
-        {tabs.map((t) => <button key={t} onClick={() => setTab(t)}>{t}</button>)}
-      </nav>
-      {tab === 'ledger' && <LedgerPage />}
-      {tab === 'manual' && <ManualEntryPage />}
-      {tab === 'import' && <ImportPage />}
-      {tab === 'documents' && <DocumentsPage />}
-      {tab === 'review' && <ReviewPage />}
-      {tab === 'reports' && <ReportsPage />}
-    </main>
+    <div className="layout">
+      <aside className="sidebar">
+        <h1>Phase 1 Tool</h1>
+        {nav.map((item) => (
+          <button key={item} className={active === item ? 'active' : ''} onClick={() => setActive(item)}>{item}</button>
+        ))}
+      </aside>
+      <section className="main">
+        <header className="topbar">Financial Intake / Bookkeeping — Phase 1 Core Intake Backbone</header>
+        <main className="content">
+          {active === 'dashboard' && <DashboardPage />}
+          {active === 'transactions' && <TransactionsPage />}
+          {active === 'imports' && <ImportsPage />}
+          {active === 'documents' && <DocumentsPage />}
+          {active === 'settings' && <SettingsPage />}
+        </main>
+      </section>
+    </div>
   );
 }

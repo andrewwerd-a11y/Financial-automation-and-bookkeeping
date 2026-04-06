@@ -7,11 +7,11 @@ Use this command from repo root to produce a distributable ZIP bundle:
 ```
 
 Output:
-- `dist/phase0-financial-platform.zip`
+- `dist/phase1-core-intake-backbone.zip`
 
 Exclusions:
 - `.git`
 - `node_modules`
 - local SQLite DB files
-- generated export CSVs
 - uploaded local evidence files
+- existing zip artifacts in `dist/`
