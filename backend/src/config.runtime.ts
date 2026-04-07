@@ -8,7 +8,7 @@ export const runtimeConfig = {
   uploadsDir: process.env.FIN_UPLOADS_DIR ? path.resolve(process.env.FIN_UPLOADS_DIR) : resolveFromCwd('uploads'),
   dbFile: process.env.FIN_DB_FILE
     ? process.env.FIN_DB_FILE
-    : path.join(process.env.FIN_DATA_DIR ? path.resolve(process.env.FIN_DATA_DIR) : resolveFromCwd('data'), 'phase3.db'),
+    : path.join(process.env.FIN_DATA_DIR ? path.resolve(process.env.FIN_DATA_DIR) : resolveFromCwd('data'), 'finance.db'),
   shouldSeed: process.env.FIN_DB_SEED === '1'
 };
 
