@@ -1,4 +1,5 @@
 import fs from 'node:fs';
+import { pathToFileURL } from 'node:url';
 import express from 'express';
 import cors from 'cors';
 import { bootstrapDb, getDbFilePath } from './db/client.js';
@@ -80,6 +81,6 @@ export const startServer = () => {
   });
 };
 
-if (import.meta.url === `file://${process.argv[1]}`) {
+if (import.meta.url === pathToFileURL(process.argv[1]).href) {
   startServer();
 }
