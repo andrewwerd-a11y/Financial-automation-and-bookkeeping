@@ -56,7 +56,7 @@ export const createExportJob = (exportType: 'transactions' | 'documents' | 'evid
     const rows = exportRows(exportType, businessId);
     const fileName = `${exportType}-${id}.csv`;
     const filePath = path.join(paths.exportsDir, fileName);
-    fs.writeFileSync(filePath, toCsv(rows), 'utf-8');
+    fs.writeFileSync(filePath, toCsv(rows as Array<Record<string, unknown>>), 'utf-8');
 
     db.prepare('UPDATE export_jobs SET status = ?, file_path = ?, completed_at = CURRENT_TIMESTAMP WHERE id = ?')
       .run('completed', filePath, id);
