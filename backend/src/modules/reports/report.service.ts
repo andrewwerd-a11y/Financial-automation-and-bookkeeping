@@ -29,27 +29,27 @@ export const getReviewStatusSummary = (businessId?: string) =>
 
 export const getEvidenceStatusSummary = (businessId?: string) =>
   businessId
-    ? db.prepare(`SELECT
-        CASE
+    ? db.prepare(`SELECT key, COUNT(*) as count FROM (
+        SELECT CASE
           WHEN COUNT(e.id) = 0 THEN 'missing'
           WHEN SUM(CASE WHEN e.strength_status = 'weak' THEN 1 ELSE 0 END) > 0 THEN 'weak'
           ELSE 'linked'
-        END as key,
-        COUNT(*) as count
-      FROM transactions t
-      LEFT JOIN evidence_links e ON e.transaction_id = t.id
-      WHERE t.business_id = ?
-      GROUP BY t.id`).all(businessId)
-    : db.prepare(`SELECT
-        CASE
+        END as key
+        FROM transactions t
+        LEFT JOIN evidence_links e ON e.transaction_id = t.id
+        WHERE t.business_id = ?
+        GROUP BY t.id
+      ) GROUP BY key ORDER BY count DESC`).all(businessId)
+    : db.prepare(`SELECT key, COUNT(*) as count FROM (
+        SELECT CASE
           WHEN COUNT(e.id) = 0 THEN 'missing'
           WHEN SUM(CASE WHEN e.strength_status = 'weak' THEN 1 ELSE 0 END) > 0 THEN 'weak'
           ELSE 'linked'
-        END as key,
-        COUNT(*) as count
-      FROM transactions t
-      LEFT JOIN evidence_links e ON e.transaction_id = t.id
-      GROUP BY t.id`).all();
+        END as key
+        FROM transactions t
+        LEFT JOIN evidence_links e ON e.transaction_id = t.id
+        GROUP BY t.id
+      ) GROUP BY key ORDER BY count DESC`).all();
 
 export const getCategorySummary = (businessId?: string) =>
   businessId
