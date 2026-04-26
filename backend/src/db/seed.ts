@@ -1,3 +1,4 @@
+import { pathToFileURL } from 'node:url';
 import { db, bootstrapDb } from './client.js';
 import { makeId } from '../shared/id.js';
 
@@ -12,7 +13,7 @@ export const seedIfEmpty = (): void => {
   insert.run(makeId('txn'), '2026-01-15', 'Sample Vendor', 42.15, 'Seeded starter row', 'unknown', 'active');
 };
 
-if (import.meta.url === `file://${process.argv[1]}`) {
+if (import.meta.url === pathToFileURL(process.argv[1]).href) {
   bootstrapDb();
   seedIfEmpty();
   console.log('Seed complete');
