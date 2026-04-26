@@ -136,6 +136,6 @@ describe('cross-wiring behavior', () => {
     const candidates = await request(app).get('/api/reconciliation/candidates');
     expect(candidates.status).toBe(200);
     expect(candidates.body.length).toBeGreaterThan(0);
-    expect(candidates.body.some((row: { reason?: string }) => row.reason === 'Same date/amount candidate')).toBe(true);
+    expect(candidates.body.some((row: { reason?: string }) => row.reason === 'Same date/amount; at least one flagged as suspected duplicate')).toBe(true);
   });
 });
