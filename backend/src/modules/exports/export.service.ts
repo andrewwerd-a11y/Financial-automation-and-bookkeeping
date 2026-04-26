@@ -77,5 +77,6 @@ export const getExportJob = (id: string) => db.prepare('SELECT * FROM export_job
 
 export const isExportPathSafe = (filePath: string) => {
   const resolved = path.resolve(filePath);
-  return resolved.startsWith(path.resolve(paths.exportsDir) + path.sep) || resolved === path.resolve(paths.exportsDir);
+  const relative = path.relative(path.resolve(paths.exportsDir), resolved);
+  return relative.length > 0 && !relative.startsWith('..') && !path.isAbsolute(relative);
 };
