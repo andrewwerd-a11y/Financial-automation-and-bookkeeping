@@ -1,4 +1,4 @@
-import type { AppSetting, Document, ImportTemplate, IngestionJob, PolicyRule, ReconciliationCandidate, ReviewDecision, Transaction, TransactionDetail, TreatmentSummaryRow } from '../types';
+import type { AppSetting, Document, ImportTemplate, IngestionJob, PolicyRule, ReconciliationCandidate, ReviewDecision, SystemStatus, Transaction, TransactionDetail, TreatmentSummaryRow } from '../types';
 
 const API = import.meta.env.VITE_API_BASE_URL || 'http://localhost:4000/api';
 
@@ -26,7 +26,7 @@ const withParam = (path: string, key: string, value?: string) =>
 
 const BASE = (import.meta.env.VITE_API_BASE_URL || 'http://localhost:4000/api').replace(/\/api$/, '');
 export const getHealth = () => fetch(`${BASE}/health`).then(parse<{ ok: boolean }>);
-export const getSystemStatus = () => fetch(`${API}/system/status`).then(parse<{ ok: boolean; phase: string; backendBaseUrl: string }>);
+export const getSystemStatus = () => fetch(`${API}/system/status`).then(parse<SystemStatus>);
 export const getDashboard = () => fetch(`${API}/dashboard`).then(parse<any>);
 export const getExportDownloadUrl = (id: string) => `${API}/exports/${id}/download`;
 

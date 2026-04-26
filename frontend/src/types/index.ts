@@ -211,3 +211,13 @@ export type AppSetting = {
   created_at: string;
   updated_at: string;
 };
+
+export type SystemStatus = {
+  ok: boolean;
+  dbOk: boolean;
+  transactionCount: number;
+  phase: string;
+  backendBaseUrl: string;
+  dbFile?: string;
+  seedEnabled?: boolean;
+};

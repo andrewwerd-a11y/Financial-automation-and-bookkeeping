@@ -1,15 +1,7 @@
 import { useEffect, useState } from 'react';
 import { getHealth, getSystemStatus, listSettings, upsertSetting } from '../api/client';
 import { EmptyState, ErrorState, LoadingState, Section } from '../components/StateBlocks';
-import type { AppSetting } from '../types';
-
-type SystemStatus = {
-  ok: boolean;
-  phase: string;
-  backendBaseUrl: string;
-  dbFile?: string;
-  seedEnabled?: boolean;
-};
+import type { AppSetting, SystemStatus } from '../types';
 
 const parseSettingValue = (raw: string): unknown => {
   try {
