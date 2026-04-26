@@ -130,6 +130,8 @@ export const createPolicy = (payload: { workspaceId: string; businessId: string;
   fetch(`${API}/policies`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) }).then(parse<PolicyRule>);
 export const updatePolicy = (id: string, payload: { ruleType: 'amount_threshold' | 'category_restriction' | 'missing_evidence'; thresholdValue?: number; categoryValue?: string; active?: boolean; config?: Record<string, unknown> }) =>
   fetch(`${API}/policies/${id}`, { method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) }).then(parse<PolicyRule>);
+export const backfillPolicies = (businessId: string) =>
+  fetch(`${API}/policies/${businessId}/backfill`, { method: 'POST' }).then(parse<{ ok: boolean; updated: number }>);
 
 export const listSettings = (workspaceId: string) => fetch(withParam(`${API}/settings`, 'workspaceId', workspaceId)).then(parse<AppSetting[]>);
 export const upsertSetting = (payload: { workspaceId: string; key: string; value: unknown }) =>

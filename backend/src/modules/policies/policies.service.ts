@@ -38,7 +38,10 @@ export const createPolicy = (input: {
     JSON.stringify(input.config ?? {})
   );
 
-  return db.prepare('SELECT * FROM policy_rules WHERE id = ?').get(id);
+  const created = db.prepare('SELECT * FROM policy_rules WHERE id = ?').get(id);
+  // DECISION: auto-backfill on policy create/update. For large datasets, consider deferring to a job.
+  backfillPolicyFlagsForBusiness(input.businessId);
+  return created;
 };
 
 export const updatePolicy = (id: string, input: {
@@ -48,6 +51,9 @@ export const updatePolicy = (id: string, input: {
   active?: boolean;
   config?: Record<string, unknown>;
 }) => {
+  const existing = db.prepare('SELECT business_id FROM policy_rules WHERE id = ?').get(id) as { business_id: string } | undefined;
+  if (!existing) return null;
+
   if (input.config !== undefined) {
     db.prepare(`UPDATE policy_rules
       SET rule_type = ?, threshold_value = ?, category_value = ?, active = ?, config_json = ?, updated_at = CURRENT_TIMESTAMP
@@ -71,7 +77,10 @@ export const updatePolicy = (id: string, input: {
     );
   }
 
-  return db.prepare('SELECT * FROM policy_rules WHERE id = ?').get(id);
+  const updated = db.prepare('SELECT * FROM policy_rules WHERE id = ?').get(id);
+  // DECISION: auto-backfill on policy create/update. For large datasets, consider deferring to a job.
+  backfillPolicyFlagsForBusiness(existing.business_id);
+  return updated;
 };
 
 export const evaluateTransactionPolicies = (input: {
@@ -143,4 +152,34 @@ export const refreshPolicyFlagsForTransaction = (transactionId: string) => {
     WHERE id = ?`).run(JSON.stringify(policyEvaluation.flags), transactionId);
 
   return db.prepare('SELECT * FROM transactions WHERE id = ?').get(transactionId);
+};
+
+export const backfillPolicyFlagsForBusiness = (businessId: string): { updated: number } => {
+  const transactions = db.prepare('SELECT * FROM transactions WHERE business_id = ?').all(businessId) as Array<Record<string, unknown>>;
+
+  let updated = 0;
+  for (const tx of transactions) {
+    const evidenceStats = db.prepare(`SELECT COUNT(*) as count,
+        SUM(CASE WHEN strength_status = 'weak' THEN 1 ELSE 0 END) as weak_count
+      FROM evidence_links WHERE transaction_id = ?`)
+      .get(tx.id) as { count: number; weak_count: number | null };
+
+    const evidenceStatus = (evidenceStats.count ?? 0) === 0
+      ? 'missing'
+      : (evidenceStats.weak_count ?? 0) > 0 ? 'weak' : 'linked';
+
+    const evaluation = evaluateTransactionPolicies({
+      businessId,
+      amount: tx.amount as number,
+      categoryValue: (tx.category_final as string | null) ?? (tx.category_suggested as string | null),
+      evidenceStatus
+    });
+
+    db.prepare('UPDATE transactions SET policy_flags_json = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ?')
+      .run(JSON.stringify(evaluation.flags), tx.id);
+
+    updated += 1;
+  }
+
+  return { updated };
 };

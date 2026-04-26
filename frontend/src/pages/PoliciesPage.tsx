@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { createPolicy, listPolicies, updatePolicy } from '../api/client';
+import { backfillPolicies, createPolicy, listPolicies, updatePolicy } from '../api/client';
 import type { PolicyRule } from '../types';
 import { EmptyState, ErrorState, LoadingState } from '../components/StateBlocks';
 
@@ -7,6 +7,7 @@ export function PoliciesPage({ activeWorkspaceId, activeBusinessId }: { activeWo
   const [rows, setRows] = useState<PolicyRule[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
+  const [message, setMessage] = useState('');
   const [form, setForm] = useState({ ruleType: 'amount_threshold', thresholdValue: '100', categoryValue: '', active: true });
 
   const load = async () => {
@@ -18,6 +19,7 @@ export function PoliciesPage({ activeWorkspaceId, activeBusinessId }: { activeWo
     try {
       setLoading(true);
       setError('');
+      setMessage('');
       setRows(await listPolicies({ workspaceId: activeWorkspaceId || undefined, businessId: activeBusinessId || undefined }));
     } catch (err) {
       setError((err as Error).message);
@@ -31,6 +33,8 @@ export function PoliciesPage({ activeWorkspaceId, activeBusinessId }: { activeWo
   const submit = async () => {
     if (!activeBusinessId) return;
     try {
+      setError('');
+      setMessage('');
       await createPolicy({
         workspaceId: activeWorkspaceId,
         businessId: activeBusinessId,
@@ -46,13 +50,31 @@ export function PoliciesPage({ activeWorkspaceId, activeBusinessId }: { activeWo
   };
 
   const toggle = async (row: PolicyRule) => {
-    await updatePolicy(row.id, {
-      ruleType: row.rule_type,
-      thresholdValue: row.threshold_value ?? undefined,
-      categoryValue: row.category_value ?? undefined,
-      active: row.active === 0
-    });
-    await load();
+    try {
+      setError('');
+      setMessage('');
+      await updatePolicy(row.id, {
+        ruleType: row.rule_type,
+        thresholdValue: row.threshold_value ?? undefined,
+        categoryValue: row.category_value ?? undefined,
+        active: row.active === 0
+      });
+      await load();
+    } catch (err) {
+      setError((err as Error).message);
+    }
+  };
+
+  const runBackfill = async () => {
+    if (!activeBusinessId) return;
+    try {
+      setError('');
+      const result = await backfillPolicies(activeBusinessId);
+      setMessage(`Backfilled ${result.updated} transactions.`);
+      await load();
+    } catch (err) {
+      setError((err as Error).message);
+    }
   };
 
   return (
@@ -69,10 +91,12 @@ export function PoliciesPage({ activeWorkspaceId, activeBusinessId }: { activeWo
       {form.ruleType === 'category_restriction' && <input value={form.categoryValue} onChange={(e) => setForm({ ...form, categoryValue: e.target.value })} placeholder="Restricted category" />}
       <label><input type="checkbox" checked={form.active} onChange={(e) => setForm({ ...form, active: e.target.checked })} />Active</label>
       <button onClick={() => void submit()} disabled={!activeWorkspaceId || !activeBusinessId}>Create Rule</button>
+      <button onClick={() => void runBackfill()} disabled={!activeBusinessId}>Backfill Existing Transactions</button>
       <button onClick={() => void load()}>Refresh</button>
 
       {loading && <LoadingState label="Loading policies..." />}
       {error && <ErrorState message={error} onRetry={() => void load()} />}
+      {message && <p>{message}</p>}
 
       {!loading && !error && rows.length === 0 ? <EmptyState label="No policy rules for this business." /> : (
         <table>

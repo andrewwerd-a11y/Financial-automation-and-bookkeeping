@@ -1,7 +1,8 @@
 import { Router } from 'express';
 import { z } from 'zod';
+import { db } from '../../db/client.js';
 import { sendApiError } from '../../shared/http.js';
-import { createPolicy, listPolicies, updatePolicy } from './policies.service.js';
+import { backfillPolicyFlagsForBusiness, createPolicy, listPolicies, updatePolicy } from './policies.service.js';
 
 const router = Router();
 
@@ -27,6 +28,15 @@ router.post('/', (req, res) => {
   const parsed = schema.safeParse(req.body);
   if (!parsed.success) return sendApiError(res, 400, 'VALIDATION_ERROR', 'Invalid policy payload', parsed.error.flatten());
   return res.status(201).json(createPolicy(parsed.data));
+});
+
+router.post('/:businessId/backfill', (req, res) => {
+  const business = db.prepare('SELECT id FROM businesses WHERE id = ?').get(req.params.businessId) as { id: string } | undefined;
+  if (!business) return sendApiError(res, 404, 'BUSINESS_NOT_FOUND', 'Business not found');
+
+  // DECISION: synchronous backfill is acceptable for local/small-team use; replace with a job queue for multi-thousand-transaction use cases.
+  const result = backfillPolicyFlagsForBusiness(req.params.businessId);
+  return res.json({ ok: true, updated: result.updated });
 });
 
 router.patch('/:id', (req, res) => {
