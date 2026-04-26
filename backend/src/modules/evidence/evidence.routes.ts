@@ -9,6 +9,7 @@ import {
   unlinkEvidence,
   updateEvidenceLinkNote
 } from './evidence.service.js';
+import { refreshTreatmentForTransaction } from '../treatment/treatment.service.js';
 
 const router = Router();
 
@@ -23,11 +24,14 @@ const linkSchema = z.object({
 router.post('/links', (req, res) => {
   const parsed = linkSchema.safeParse(req.body);
   if (!parsed.success) return res.status(400).json(parsed.error.flatten());
-  res.status(201).json(linkEvidence(parsed.data));
+  const link = linkEvidence(parsed.data);
+  refreshTreatmentForTransaction(parsed.data.transactionId);
+  res.status(201).json(link);
 });
 
 router.delete('/links/:id', (req, res) => {
-  unlinkEvidence(req.params.id);
+  const transactionId = unlinkEvidence(req.params.id);
+  if (transactionId) refreshTreatmentForTransaction(transactionId);
   res.json({ ok: true });
 });
 

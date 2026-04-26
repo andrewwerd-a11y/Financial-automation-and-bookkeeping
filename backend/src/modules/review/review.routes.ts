@@ -1,6 +1,7 @@
 import { Router } from 'express';
 import { z } from 'zod';
 import { applyReviewAction, getReviewQueue } from './review.service.js';
+import { refreshTreatmentForTransaction } from '../treatment/treatment.service.js';
 
 const router = Router();
 
@@ -26,6 +27,7 @@ router.post('/actions/:transactionId', (req, res) => {
   });
 
   if (!updated) return res.status(404).json({ message: 'Transaction not found' });
+  refreshTreatmentForTransaction(req.params.transactionId);
   res.status(201).json(updated);
 });
 

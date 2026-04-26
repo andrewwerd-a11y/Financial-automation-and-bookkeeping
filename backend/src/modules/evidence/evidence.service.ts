@@ -30,7 +30,11 @@ export const linkEvidence = (input: {
   return db.prepare('SELECT * FROM evidence_links WHERE id = ?').get(id);
 };
 
-export const unlinkEvidence = (linkId: string) => db.prepare('DELETE FROM evidence_links WHERE id = ?').run(linkId);
+export const unlinkEvidence = (linkId: string): string | null => {
+  const link = db.prepare('SELECT transaction_id FROM evidence_links WHERE id = ?').get(linkId) as { transaction_id: string } | undefined;
+  db.prepare('DELETE FROM evidence_links WHERE id = ?').run(linkId);
+  return link?.transaction_id ?? null;
+};
 
 export const listEvidenceForTransaction = (transactionId: string) => db.prepare(`SELECT e.*, d.file_name, d.mime_type, d.uploaded_at
   FROM evidence_links e
