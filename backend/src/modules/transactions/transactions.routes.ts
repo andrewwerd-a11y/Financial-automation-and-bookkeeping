@@ -2,7 +2,7 @@ import { Router } from 'express';
 import { z } from 'zod';
 import { db } from '../../db/client.js';
 import { listEvidenceForTransaction } from '../evidence/evidence.service.js';
-import { createTransaction, getTransactionById, listTransactions, updateTransactionBusinessPurpose } from './transactions.service.js';
+import { createTransaction, enrichTransaction, getTransactionById, listTransactions, updateTransactionBusinessPurpose } from './transactions.service.js';
 import { sendApiError } from '../../shared/http.js';
 
 const router = Router();
@@ -21,7 +21,7 @@ router.get('/', (req, res) => {
   if (!businessId) return res.json(listTransactions());
 
   const rows = db.prepare('SELECT * FROM transactions WHERE business_id = ? ORDER BY date DESC, created_at DESC').all(businessId) as Array<Record<string, unknown>>;
-  return res.json(rows);
+  return res.json(rows.map(enrichTransaction));
 });
 
 router.get('/:id', (req, res) => {

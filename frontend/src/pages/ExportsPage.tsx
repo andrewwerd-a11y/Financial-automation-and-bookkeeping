@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { createExportJob, listExportJobs } from '../api/client';
+import { createExportJob, getExportDownloadUrl, listExportJobs } from '../api/client';
 import { EmptyState, ErrorState, LoadingState } from '../components/StateBlocks';
 
 export function ExportsPage({ activeBusinessId }: { activeBusinessId: string }) {
@@ -50,7 +50,7 @@ export function ExportsPage({ activeBusinessId }: { activeBusinessId: string }) 
             {jobs.map((job) => (
               <tr key={job.id}>
                 <td>{job.id}</td><td>{job.export_type}</td><td>{job.status}</td><td>{job.created_at}</td><td>{job.completed_at ?? '-'}</td>
-                <td>{job.status === 'completed' ? <a href={`http://localhost:4000/api/exports/${job.id}/download`} target="_blank" rel="noreferrer">Download</a> : '-'}</td>
+                <td>{job.status === 'completed' ? <a href={getExportDownloadUrl(job.id)} target="_blank" rel="noreferrer">Download</a> : '-'}</td>
               </tr>
             ))}
           </tbody>

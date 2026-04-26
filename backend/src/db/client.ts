@@ -20,9 +20,9 @@ export const bootstrapDb = (): void => {
 export const clearAllData = (): void => {
   db.exec(`
     DELETE FROM import_rows_raw;
+    DELETE FROM evidence_links;
     DELETE FROM documents;
     DELETE FROM review_decisions;
-    DELETE FROM evidence_links;
     DELETE FROM transactions;
     DELETE FROM source_files;
     DELETE FROM reviews;

@@ -30,7 +30,11 @@ export const linkEvidence = (input: {
   return db.prepare('SELECT * FROM evidence_links WHERE id = ?').get(id);
 };
 
-export const unlinkEvidence = (linkId: string) => db.prepare('DELETE FROM evidence_links WHERE id = ?').run(linkId);
+export const unlinkEvidence = (linkId: string): string | null => {
+  const link = db.prepare('SELECT transaction_id FROM evidence_links WHERE id = ?').get(linkId) as { transaction_id: string } | undefined;
+  db.prepare('DELETE FROM evidence_links WHERE id = ?').run(linkId);
+  return link?.transaction_id ?? null;
+};
 
 export const listEvidenceForTransaction = (transactionId: string) => db.prepare(`SELECT e.*, d.file_name, d.mime_type, d.uploaded_at
   FROM evidence_links e
@@ -38,7 +42,8 @@ export const listEvidenceForTransaction = (transactionId: string) => db.prepare(
   WHERE e.transaction_id = ?
   ORDER BY e.created_at DESC`).all(transactionId);
 
-export const listTransactionsForDocument = (documentId: string) => db.prepare(`SELECT e.*, t.vendor, t.date, t.amount, t.review_status
+export const listTransactionsForDocument = (documentId: string) => db.prepare(`SELECT e.id as link_id, e.strength_status, e.business_purpose_note, e.created_at as linked_at,
+    t.id, t.vendor, t.date, t.amount, t.review_status
   FROM evidence_links e
   JOIN transactions t ON t.id = e.transaction_id
   WHERE e.document_id = ?

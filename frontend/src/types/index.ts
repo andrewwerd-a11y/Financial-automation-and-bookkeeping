@@ -1,5 +1,6 @@
 export type Transaction = {
   id: string;
+  workspace_id?: string | null;
   date: string;
   vendor: string;
   amount: number;
@@ -22,7 +23,15 @@ export type Transaction = {
   policy_flags_json?: string | null;
   evidence_status?: 'missing' | 'linked' | 'weak';
   evidence_count?: number;
+  treatment_suggested?: string | null;
+  treatment_final?: string | null;
+  treatment_confidence?: number | null;
+  treatment_reason?: string | null;
+  accountant_review_flag?: number | null;
+  mixed_use_flag?: number | null;
+  excluded_flag?: number | null;
   created_at: string;
+  updated_at?: string | null;
 };
 
 export type SourceFile = {
@@ -37,6 +46,7 @@ export type SourceFile = {
 
 export type Document = {
   id: string;
+  workspace_id?: string | null;
   business_id?: string | null;
   source_file_id: string;
   file_name: string;

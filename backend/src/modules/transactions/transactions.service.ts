@@ -55,7 +55,7 @@ export const createTransaction = (params: {
   const policyEvaluation = evaluateTransactionPolicies({
     businessId: params.businessId ?? null,
     amount: params.amount,
-    categorySuggested: suggestion.categorySuggested,
+    categoryValue: suggestion.categorySuggested,
     evidenceStatus: 'missing'
   });
 

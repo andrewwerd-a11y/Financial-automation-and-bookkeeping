@@ -7,10 +7,26 @@ import { getDocumentMatchSummary, listTransactionsForDocument } from '../evidenc
 import { paths } from '../../config.runtime.js';
 import { sendApiError } from '../../shared/http.js';
 
-const upload = multer({ storage: multer.diskStorage({
-  destination: (_req, _file, cb) => cb(null, paths.uploadsDocumentsDir),
-  filename: (_req, file, cb) => cb(null, `${Date.now()}-${file.originalname.replace(/\s+/g, '_')}`)
-}) });
+const ALLOWED_DOCUMENT_MIME = new Set([
+  'application/pdf', 'image/jpeg', 'image/png', 'image/gif', 'image/webp',
+  'text/plain', 'text/csv',
+  'application/vnd.ms-excel',
+  'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+  'application/msword',
+  'application/vnd.openxmlformats-officedocument.wordprocessingml.document'
+]);
+
+const upload = multer({
+  storage: multer.diskStorage({
+    destination: (_req, _file, cb) => cb(null, paths.uploadsDocumentsDir),
+    filename: (_req, file, cb) => cb(null, `${makeId('doc')}-${file.originalname.replace(/\s+/g, '_')}`)
+  }),
+  limits: { fileSize: 50 * 1024 * 1024 },
+  fileFilter: (_req, file, cb) => {
+    if (ALLOWED_DOCUMENT_MIME.has(file.mimetype)) return cb(null, true);
+    cb(new Error(`Unsupported file type: ${file.mimetype}`));
+  }
+});
 
 const router = Router();
 

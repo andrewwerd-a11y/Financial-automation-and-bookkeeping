@@ -1,6 +1,9 @@
 import { Router } from 'express';
 import { z } from 'zod';
 import { applyReviewAction, getReviewQueue } from './review.service.js';
+import { refreshTreatmentForTransaction } from '../treatment/treatment.service.js';
+import { refreshPolicyFlagsForTransaction } from '../policies/policies.service.js';
+import { sendApiError } from '../../shared/http.js';
 
 const router = Router();
 
@@ -18,14 +21,16 @@ router.get('/queue', (req, res) => {
 
 router.post('/actions/:transactionId', (req, res) => {
   const parsed = actionSchema.safeParse(req.body);
-  if (!parsed.success) return res.status(400).json(parsed.error.flatten());
+  if (!parsed.success) return sendApiError(res, 400, 'VALIDATION_ERROR', 'Invalid review action payload', parsed.error.flatten());
 
   const updated = applyReviewAction({
     transactionId: req.params.transactionId,
     ...parsed.data
   });
 
-  if (!updated) return res.status(404).json({ message: 'Transaction not found' });
+  if (!updated) return sendApiError(res, 404, 'TRANSACTION_NOT_FOUND', 'Transaction not found');
+  refreshTreatmentForTransaction(req.params.transactionId);
+  refreshPolicyFlagsForTransaction(req.params.transactionId);
   res.status(201).json(updated);
 });
 

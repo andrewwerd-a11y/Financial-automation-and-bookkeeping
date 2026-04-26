@@ -237,3 +237,22 @@ CREATE TABLE IF NOT EXISTS app_settings (
   updated_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
   FOREIGN KEY(workspace_id) REFERENCES workspaces(id)
 );
+
+-- Performance indexes for frequently-queried FK columns
+CREATE INDEX IF NOT EXISTS idx_transactions_business_id ON transactions(business_id);
+CREATE INDEX IF NOT EXISTS idx_transactions_workspace_id ON transactions(workspace_id);
+CREATE INDEX IF NOT EXISTS idx_transactions_date ON transactions(date);
+CREATE INDEX IF NOT EXISTS idx_transactions_review_status ON transactions(review_status);
+CREATE INDEX IF NOT EXISTS idx_documents_business_id ON documents(business_id);
+CREATE INDEX IF NOT EXISTS idx_documents_workspace_id ON documents(workspace_id);
+CREATE INDEX IF NOT EXISTS idx_evidence_links_transaction_id ON evidence_links(transaction_id);
+CREATE INDEX IF NOT EXISTS idx_evidence_links_document_id ON evidence_links(document_id);
+CREATE INDEX IF NOT EXISTS idx_policy_rules_business_id ON policy_rules(business_id);
+CREATE INDEX IF NOT EXISTS idx_policy_rules_workspace_id ON policy_rules(workspace_id);
+CREATE INDEX IF NOT EXISTS idx_import_rows_raw_source_file_id ON import_rows_raw(source_file_id);
+CREATE INDEX IF NOT EXISTS idx_ingestion_jobs_source_file_id ON ingestion_jobs(source_file_id);
+CREATE INDEX IF NOT EXISTS idx_connector_sync_jobs_connector_id ON connector_sync_jobs(connector_id);
+CREATE INDEX IF NOT EXISTS idx_review_decisions_transaction_id ON review_decisions(transaction_id);
+CREATE INDEX IF NOT EXISTS idx_workspace_members_workspace_id ON workspace_members(workspace_id);
+CREATE INDEX IF NOT EXISTS idx_workspace_members_user_id ON workspace_members(user_id);
+CREATE INDEX IF NOT EXISTS idx_app_settings_workspace_id ON app_settings(workspace_id);

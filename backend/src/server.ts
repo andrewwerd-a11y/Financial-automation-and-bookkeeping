@@ -1,6 +1,7 @@
 import fs from 'node:fs';
 import { pathToFileURL } from 'node:url';
 import express from 'express';
+import { db } from './db/client.js';
 import cors from 'cors';
 import { bootstrapDb, getDbFilePath } from './db/client.js';
 import { seedIfEmpty } from './db/seed.js';
@@ -82,5 +83,13 @@ export const startServer = () => {
 };
 
 if (import.meta.url === pathToFileURL(process.argv[1]).href) {
-  startServer();
+  const server = startServer();
+  const shutdown = () => {
+    server.close(() => {
+      db.close();
+      process.exit(0);
+    });
+  };
+  process.on('SIGINT', shutdown);
+  process.on('SIGTERM', shutdown);
 }

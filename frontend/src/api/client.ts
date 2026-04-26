@@ -1,4 +1,4 @@
-const API = 'http://localhost:4000/api';
+const API = import.meta.env.VITE_API_BASE_URL || 'http://localhost:4000/api';
 
 async function parse<T>(res: Response): Promise<T> {
   const text = await res.text();
@@ -22,9 +22,11 @@ async function parse<T>(res: Response): Promise<T> {
 const withParam = (path: string, key: string, value?: string) =>
   value ? `${path}${path.includes('?') ? '&' : '?'}${encodeURIComponent(key)}=${encodeURIComponent(value)}` : path;
 
-export const getHealth = () => fetch('http://localhost:4000/health').then(parse<{ ok: boolean }>);
+const BASE = (import.meta.env.VITE_API_BASE_URL || 'http://localhost:4000/api').replace(/\/api$/, '');
+export const getHealth = () => fetch(`${BASE}/health`).then(parse<{ ok: boolean }>);
 export const getSystemStatus = () => fetch(`${API}/system/status`).then(parse<{ ok: boolean; phase: string; backendBaseUrl: string }>);
 export const getDashboard = () => fetch(`${API}/dashboard`).then(parse<any>);
+export const getExportDownloadUrl = (id: string) => `${API}/exports/${id}/download`;
 
 export const listTransactions = (businessId?: string) => fetch(withParam(`${API}/transactions`, 'businessId', businessId)).then(parse<any[]>);
 export const getTransaction = (id: string) => fetch(`${API}/transactions/${id}`).then(parse<any>);

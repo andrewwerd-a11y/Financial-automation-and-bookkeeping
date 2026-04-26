@@ -22,10 +22,13 @@ import {
   updateImportTemplate
 } from './ingestion.service.js';
 
-const upload = multer({ storage: multer.diskStorage({
-  destination: (_req, _file, cb) => cb(null, paths.uploadsCsvDir),
-  filename: (_req, file, cb) => cb(null, `${Date.now()}-${file.originalname.replace(/\s+/g, '_')}`)
-}) });
+const upload = multer({
+  storage: multer.diskStorage({
+    destination: (_req, _file, cb) => cb(null, paths.uploadsCsvDir),
+    filename: (_req, file, cb) => cb(null, `${makeId('csv')}-${file.originalname.replace(/\s+/g, '_')}`)
+  }),
+  limits: { fileSize: 10 * 1024 * 1024 }
+});
 
 const router = Router();
 
