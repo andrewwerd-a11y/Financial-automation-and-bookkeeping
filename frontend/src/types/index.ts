@@ -34,6 +34,12 @@ export type Transaction = {
   updated_at?: string | null;
 };
 
+export type TreatmentSummaryRow = {
+  key: string;
+  count: number;
+  total_amount: number;
+};
+
 export type SourceFile = {
   id: string;
   kind: 'csv' | 'document';

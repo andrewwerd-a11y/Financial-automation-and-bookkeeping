@@ -5,6 +5,7 @@ import { ImportsPage } from './pages/ImportsPage';
 import { DocumentsPage } from './pages/DocumentsPage';
 import { SettingsPage } from './pages/SettingsPage';
 import { ReviewQueuePage } from './pages/ReviewQueuePage';
+import { TreatmentPage } from './pages/TreatmentPage';
 import { MissingEvidencePage } from './pages/MissingEvidencePage';
 import { UnmatchedDocumentsPage } from './pages/UnmatchedDocumentsPage';
 import { ReportsPage } from './pages/ReportsPage';
@@ -28,6 +29,7 @@ const nav = [
   ['connectors', 'Connectors'],
   ['reconciliation', 'Reconciliation'],
   ['review_queue', 'Review Queue'],
+  ['treatment', 'Treatment'],
   ['missing_evidence', 'Missing Evidence'],
   ['unmatched_documents', 'Unmatched Documents'],
   ['reports', 'Reports'],
@@ -68,6 +70,7 @@ export default function App() {
           {active === 'connectors' && <ConnectorsPage />}
           {active === 'reconciliation' && <ReconciliationPage />}
           {active === 'review_queue' && <ReviewQueuePage activeBusinessId={activeBusinessId} />}
+          {active === 'treatment' && <TreatmentPage />}
           {active === 'missing_evidence' && <MissingEvidencePage />}
           {active === 'unmatched_documents' && <UnmatchedDocumentsPage />}
           {active === 'reports' && <ReportsPage activeBusinessId={activeBusinessId} />}

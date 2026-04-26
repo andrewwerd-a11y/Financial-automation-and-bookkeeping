@@ -1,3 +1,5 @@
+import type { AppSetting, Document, ImportTemplate, IngestionJob, PolicyRule, ReconciliationCandidate, Transaction, TreatmentSummaryRow } from '../types';
+
 const API = import.meta.env.VITE_API_BASE_URL || 'http://localhost:4000/api';
 
 async function parse<T>(res: Response): Promise<T> {
@@ -28,12 +30,12 @@ export const getSystemStatus = () => fetch(`${API}/system/status`).then(parse<{ 
 export const getDashboard = () => fetch(`${API}/dashboard`).then(parse<any>);
 export const getExportDownloadUrl = (id: string) => `${API}/exports/${id}/download`;
 
-export const listTransactions = (businessId?: string) => fetch(withParam(`${API}/transactions`, 'businessId', businessId)).then(parse<any[]>);
-export const getTransaction = (id: string) => fetch(`${API}/transactions/${id}`).then(parse<any>);
+export const listTransactions = (businessId?: string) => fetch(withParam(`${API}/transactions`, 'businessId', businessId)).then(parse<Transaction[]>);
+export const getTransaction = (id: string) => fetch(`${API}/transactions/${id}`).then(parse<Transaction>);
 export const createTransaction = (payload: { date: string; vendor: string; amount: number; description_raw?: string; businessId?: string; workspaceId?: string }) =>
-  fetch(`${API}/transactions`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) }).then(parse<any>);
+  fetch(`${API}/transactions`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) }).then(parse<Transaction>);
 export const updateTransactionBusinessPurpose = (id: string, businessPurposeNote: string) =>
-  fetch(`${API}/transactions/${id}/business-purpose-note`, { method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ businessPurposeNote }) }).then(parse<any>);
+  fetch(`${API}/transactions/${id}/business-purpose-note`, { method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ businessPurposeNote }) }).then(parse<Transaction>);
 
 export const listImports = () => fetch(`${API}/imports`).then(parse<any[]>);
 export const uploadCsv = (file: File, opts?: { templateId?: string; saveTemplateName?: string; businessId?: string }) => {
@@ -45,8 +47,8 @@ export const uploadCsv = (file: File, opts?: { templateId?: string; saveTemplate
   return fetch(`${API}/imports/csv`, { method: 'POST', body: form }).then(parse<any>);
 };
 
-export const listDocuments = (businessId?: string) => fetch(withParam(`${API}/documents`, 'businessId', businessId)).then(parse<any[]>);
-export const getDocument = (id: string) => fetch(`${API}/documents/${id}`).then(parse<any>);
+export const listDocuments = (businessId?: string) => fetch(withParam(`${API}/documents`, 'businessId', businessId)).then(parse<Document[]>);
+export const getDocument = (id: string) => fetch(`${API}/documents/${id}`).then(parse<Document>);
 export const uploadDocument = (file: File, notes?: string, businessId?: string) => {
   const form = new FormData();
   form.append('file', file);
@@ -55,9 +57,9 @@ export const uploadDocument = (file: File, notes?: string, businessId?: string) 
   return fetch(`${API}/documents/upload`, { method: 'POST', body: form }).then(parse<any>);
 };
 
-export const listReviewQueue = (businessId?: string) => fetch(withParam(`${API}/review/queue`, 'businessId', businessId)).then(parse<any[]>);
+export const listReviewQueue = (businessId?: string) => fetch(withParam(`${API}/review/queue`, 'businessId', businessId)).then(parse<Transaction[]>);
 export const applyReviewAction = (transactionId: string, payload: { actionType: string; categoryFinal?: string; businessActivityFinal?: string; note?: string }) =>
-  fetch(`${API}/review/actions/${transactionId}`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) }).then(parse<any>);
+  fetch(`${API}/review/actions/${transactionId}`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) }).then(parse<Transaction>);
 
 export const linkEvidence = (payload: { transactionId: string; documentId: string; relationType?: string; strengthStatus?: 'linked' | 'weak'; businessPurposeNote?: string }) =>
   fetch(`${API}/evidence/links`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) }).then(parse<any>);
@@ -76,9 +78,9 @@ export const createExportJob = (exportType: 'transactions' | 'documents' | 'evid
   fetch(`${API}/exports`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ exportType, businessId }) }).then(parse<any>);
 export const listExportJobs = () => fetch(`${API}/exports`).then(parse<any[]>);
 
-export const listIngestionJobs = () => fetch(`${API}/imports/jobs`).then(parse<any[]>);
-export const getIngestionJob = (id: string) => fetch(`${API}/imports/jobs/${id}`).then(parse<any>);
-export const listImportTemplates = () => fetch(`${API}/imports/templates`).then(parse<any[]>);
+export const listIngestionJobs = () => fetch(`${API}/imports/jobs`).then(parse<IngestionJob[]>);
+export const getIngestionJob = (id: string) => fetch(`${API}/imports/jobs/${id}`).then(parse<IngestionJob>);
+export const listImportTemplates = () => fetch(`${API}/imports/templates`).then(parse<ImportTemplate[]>);
 export const createImportTemplate = (payload: { name: string; mapping: { dateColumn: string; vendorColumn: string; amountColumn: string; descriptionColumn?: string } }) =>
   fetch(`${API}/imports/templates`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) }).then(parse<any>);
 export const updateImportTemplate = (id: string, payload: { name: string; mapping: { dateColumn: string; vendorColumn: string; amountColumn: string; descriptionColumn?: string } }) =>
@@ -98,10 +100,10 @@ export const createConnector = (payload: { connectorType: 'simulated_csv_feed' |
 export const listConnectorSyncJobs = () => fetch(`${API}/connectors/sync-jobs`).then(parse<any[]>);
 export const runConnectorSync = (id: string) => fetch(`${API}/connectors/${id}/sync`, { method: 'POST' }).then(parse<any>);
 
-export const listReconciliationCandidates = () => fetch(`${API}/reconciliation/candidates`).then(parse<any[]>);
+export const listReconciliationCandidates = () => fetch(`${API}/reconciliation/candidates`).then(parse<ReconciliationCandidate[]>);
 export const runReconciliationScan = () => fetch(`${API}/reconciliation/scan`, { method: 'POST' }).then(parse<any>);
 export const updateReconciliationCandidate = (id: string, status: 'resolved' | 'rejected') =>
-  fetch(`${API}/reconciliation/candidates/${id}`, { method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ status }) }).then(parse<any>);
+  fetch(`${API}/reconciliation/candidates/${id}`, { method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ status }) }).then(parse<ReconciliationCandidate>);
 
 export const listWorkspaces = () => fetch(`${API}/workspaces`).then(parse<any[]>);
 export const createWorkspace = (payload: { name: string; slug: string }) =>
@@ -122,13 +124,30 @@ export const listPolicies = (params?: { workspaceId?: string; businessId?: strin
   let path = `${API}/policies`;
   path = withParam(path, 'workspaceId', params?.workspaceId);
   path = withParam(path, 'businessId', params?.businessId);
-  return fetch(path).then(parse<any[]>);
+  return fetch(path).then(parse<PolicyRule[]>);
 };
 export const createPolicy = (payload: { workspaceId: string; businessId: string; ruleType: 'amount_threshold' | 'category_restriction' | 'missing_evidence'; thresholdValue?: number; categoryValue?: string; active?: boolean; config?: Record<string, unknown> }) =>
-  fetch(`${API}/policies`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) }).then(parse<any>);
+  fetch(`${API}/policies`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) }).then(parse<PolicyRule>);
 export const updatePolicy = (id: string, payload: { ruleType: 'amount_threshold' | 'category_restriction' | 'missing_evidence'; thresholdValue?: number; categoryValue?: string; active?: boolean; config?: Record<string, unknown> }) =>
-  fetch(`${API}/policies/${id}`, { method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) }).then(parse<any>);
+  fetch(`${API}/policies/${id}`, { method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) }).then(parse<PolicyRule>);
 
-export const listSettings = (workspaceId: string) => fetch(withParam(`${API}/settings`, 'workspaceId', workspaceId)).then(parse<any[]>);
+export const listSettings = (workspaceId: string) => fetch(withParam(`${API}/settings`, 'workspaceId', workspaceId)).then(parse<AppSetting[]>);
 export const upsertSetting = (payload: { workspaceId: string; key: string; value: unknown }) =>
-  fetch(`${API}/settings`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) }).then(parse<any>);
+  fetch(`${API}/settings`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) }).then(parse<AppSetting>);
+
+export const getTreatmentSummary = () =>
+  fetch(`${API}/treatment/summary`).then(parse<TreatmentSummaryRow[]>);
+
+export const getTreatmentBucket = (bucket?: string) =>
+  fetch(bucket && bucket !== 'all' ? `${API}/treatment/transactions?bucket=${encodeURIComponent(bucket)}` : `${API}/treatment/transactions`)
+    .then(parse<Transaction[]>);
+
+export const getAccountantQueue = () =>
+  fetch(`${API}/treatment/accountant-queue`).then(parse<Transaction[]>);
+
+export const setTreatmentFinal = (id: string, treatmentFinal: string, note?: string) =>
+  fetch(`${API}/treatment/transactions/${id}/final`, {
+    method: 'PATCH',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ treatmentFinal, note })
+  }).then(parse<Transaction>);
