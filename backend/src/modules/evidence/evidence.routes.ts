@@ -10,6 +10,7 @@ import {
   updateEvidenceLinkNote
 } from './evidence.service.js';
 import { refreshTreatmentForTransaction } from '../treatment/treatment.service.js';
+import { sendApiError } from '../../shared/http.js';
 
 const router = Router();
 
@@ -23,7 +24,7 @@ const linkSchema = z.object({
 
 router.post('/links', (req, res) => {
   const parsed = linkSchema.safeParse(req.body);
-  if (!parsed.success) return res.status(400).json(parsed.error.flatten());
+  if (!parsed.success) return sendApiError(res, 400, 'VALIDATION_ERROR', 'Invalid evidence link payload', parsed.error.flatten());
   const link = linkEvidence(parsed.data);
   refreshTreatmentForTransaction(parsed.data.transactionId);
   res.status(201).json(link);
