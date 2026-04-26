@@ -10,12 +10,15 @@ export const listReconciliationCandidates = () => db.prepare(`SELECT rc.*,
   ORDER BY rc.updated_at DESC`).all();
 
 export const runReconciliationScan = () => {
+  // Match pairs that share date+amount regardless of source, OR where at least
+  // one side has an external_source_id (connector imports).  Manual duplicates
+  // are already flagged as duplicate_status='suspected_duplicate' by createTransaction;
+  // surfacing them here lets the user explicitly resolve or reject them.
   const rows = db.prepare(`SELECT a.id as left_id, b.id as right_id, a.amount, a.date
     FROM transactions a
     JOIN transactions b ON a.id < b.id
     WHERE ABS(a.amount - b.amount) < 0.01
-      AND a.date = b.date
-      AND (a.external_source_id IS NOT NULL OR b.external_source_id IS NOT NULL)`).all() as Array<{
+      AND a.date = b.date`).all() as Array<{
     left_id: string; right_id: string; amount: number; date: string;
   }>;
 
