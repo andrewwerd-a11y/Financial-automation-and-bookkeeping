@@ -45,6 +45,16 @@ or cursor-based pagination on transactions, documents, evidence_links, etc.
 The frontend has no React error boundary. An unhandled render error crashes the
 whole app.
 
+### FE-004: Settings UI is not wired to `/api/settings`
+`frontend/src/api/client.ts` exposes `listSettings` and `upsertSetting`, but
+`SettingsPage` only renders backend health and system status. There is no page
+for viewing or editing persisted app settings.
+
+### FE-005: No frontend for treatment routes
+Backend treatment routes exist (`/api/treatment/summary`, `/transactions`,
+`/accountant-queue`, `/transactions/:id/final`), but there is no page or nav
+entry exposing them in the frontend.
+
 ### FE-002: Frontend test coverage
 No frontend tests exist. Add vitest + @testing-library/react for at least the
 `App` component and the `api/client.ts` fetch wrappers.
@@ -53,6 +63,17 @@ No frontend tests exist. Add vitest + @testing-library/react for at least the
 `frontend/src/api/client.ts` uses manual `fetch` + casts. A generated client
 (openapi-fetch, tRPC, or similar) would eliminate type drift between backend
 routes and frontend consumers.
+
+### POL-001: Policy create/toggle does not backfill existing transactions
+New transactions compute `policy_flags_json` correctly, and link/unlink/review
+events now recompute flags for touched rows. Creating, editing, activating, or
+deactivating a policy still does not rescan historical transactions, so older
+rows can retain stale flags until another event touches them.
+
+### REC-001: Reconciliation scan is global and intentionally simple
+The current scan matches same-date/same-amount pairs across the full
+transaction table. It does not scope by workspace/business, compare vendors, or
+perform any merge/resolution side effect beyond candidate creation.
 
 ### D-002: Connector type documentation
 Both connector types share the same simulated generator. Add a code comment in

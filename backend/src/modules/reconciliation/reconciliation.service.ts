@@ -32,7 +32,7 @@ export const runReconciliationScan = () => {
       WHERE left_transaction_id = ? AND right_transaction_id = ?`).get(row.left_id, row.right_id) as { id: string } | undefined;
 
     if (existing) continue;
-    insert.run(makeId('rec'), row.left_id, row.right_id, 0.82, 'Same date/amount with external-source overlap');
+    insert.run(makeId('rec'), row.left_id, row.right_id, 0.82, 'Same date/amount candidate');
     created += 1;
   }
 

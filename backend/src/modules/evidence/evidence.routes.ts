@@ -10,6 +10,7 @@ import {
   updateEvidenceLinkNote
 } from './evidence.service.js';
 import { refreshTreatmentForTransaction } from '../treatment/treatment.service.js';
+import { refreshPolicyFlagsForTransaction } from '../policies/policies.service.js';
 import { sendApiError } from '../../shared/http.js';
 
 const router = Router();
@@ -27,12 +28,16 @@ router.post('/links', (req, res) => {
   if (!parsed.success) return sendApiError(res, 400, 'VALIDATION_ERROR', 'Invalid evidence link payload', parsed.error.flatten());
   const link = linkEvidence(parsed.data);
   refreshTreatmentForTransaction(parsed.data.transactionId);
+  refreshPolicyFlagsForTransaction(parsed.data.transactionId);
   res.status(201).json(link);
 });
 
 router.delete('/links/:id', (req, res) => {
   const transactionId = unlinkEvidence(req.params.id);
-  if (transactionId) refreshTreatmentForTransaction(transactionId);
+  if (transactionId) {
+    refreshTreatmentForTransaction(transactionId);
+    refreshPolicyFlagsForTransaction(transactionId);
+  }
   res.json({ ok: true });
 });
 

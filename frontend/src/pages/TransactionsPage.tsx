@@ -156,6 +156,9 @@ export function TransactionsPage({ activeBusinessId }: { activeBusinessId: strin
           <p><strong>Description:</strong> {selected.description_raw}</p>
           <p><strong>Suggested category/activity:</strong> {selected.category_suggested} / {selected.business_activity_suggested}</p>
           <p><strong>Final category/activity:</strong> {selected.category_final ?? '-'} / {selected.business_activity_final ?? '-'}</p>
+          <p><strong>Suggested/final treatment:</strong> {selected.treatment_suggested ?? '-'} / {selected.treatment_final ?? '-'}</p>
+          <p><strong>Treatment confidence/reason:</strong> {selected.treatment_confidence ?? '-'} / {selected.treatment_reason ?? '-'}</p>
+          <p><strong>Treatment flags:</strong> accountant={selected.accountant_review_flag ?? 0}, mixed_use={selected.mixed_use_flag ?? 0}, excluded={selected.excluded_flag ?? 0}</p>
           <p><strong>Confidence:</strong> {selected.confidence_score ?? '-'}</p>
           <p><strong>Review status:</strong> {selected.review_status}</p>
           <p><strong>Policy flags:</strong> {selected.policy_flags_json ?? '[]'}</p>

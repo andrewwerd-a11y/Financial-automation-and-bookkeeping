@@ -2,6 +2,7 @@ import { Router } from 'express';
 import { z } from 'zod';
 import { applyReviewAction, getReviewQueue } from './review.service.js';
 import { refreshTreatmentForTransaction } from '../treatment/treatment.service.js';
+import { refreshPolicyFlagsForTransaction } from '../policies/policies.service.js';
 import { sendApiError } from '../../shared/http.js';
 
 const router = Router();
@@ -29,6 +30,7 @@ router.post('/actions/:transactionId', (req, res) => {
 
   if (!updated) return sendApiError(res, 404, 'TRANSACTION_NOT_FOUND', 'Transaction not found');
   refreshTreatmentForTransaction(req.params.transactionId);
+  refreshPolicyFlagsForTransaction(req.params.transactionId);
   res.status(201).json(updated);
 });
 

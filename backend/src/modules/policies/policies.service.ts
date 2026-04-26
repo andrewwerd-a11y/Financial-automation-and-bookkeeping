@@ -77,7 +77,7 @@ export const updatePolicy = (id: string, input: {
 export const evaluateTransactionPolicies = (input: {
   businessId?: string | null;
   amount: number;
-  categorySuggested?: string | null;
+  categoryValue?: string | null;
   evidenceStatus?: 'missing' | 'linked' | 'weak';
 }) => {
   if (!input.businessId) return { flags: [] } satisfies PolicyEvaluation;
@@ -95,7 +95,7 @@ export const evaluateTransactionPolicies = (input: {
       flags.push(`amount_over_threshold:${rule.threshold_value}`);
     }
 
-    if (rule.rule_type === 'category_restriction' && rule.category_value && (input.categorySuggested ?? '').toLowerCase() === rule.category_value.toLowerCase()) {
+    if (rule.rule_type === 'category_restriction' && rule.category_value && (input.categoryValue ?? '').toLowerCase() === rule.category_value.toLowerCase()) {
       flags.push(`restricted_category:${rule.category_value}`);
     }
 
@@ -105,4 +105,42 @@ export const evaluateTransactionPolicies = (input: {
   }
 
   return { flags } satisfies PolicyEvaluation;
+};
+
+export const refreshPolicyFlagsForTransaction = (transactionId: string) => {
+  const tx = db.prepare(`SELECT id, business_id, amount, category_suggested, category_final
+    FROM transactions
+    WHERE id = ?`).get(transactionId) as {
+      id: string;
+      business_id: string | null;
+      amount: number;
+      category_suggested: string | null;
+      category_final: string | null;
+    } | undefined;
+
+  if (!tx) return null;
+
+  const evidence = db.prepare(`SELECT COUNT(*) as count,
+      SUM(CASE WHEN strength_status = 'weak' THEN 1 ELSE 0 END) as weak_count
+    FROM evidence_links
+    WHERE transaction_id = ?`).get(transactionId) as { count: number; weak_count: number | null };
+
+  const evidenceStatus = (evidence.count ?? 0) === 0
+    ? 'missing'
+    : (evidence.weak_count ?? 0) > 0
+      ? 'weak'
+      : 'linked';
+
+  const policyEvaluation = evaluateTransactionPolicies({
+    businessId: tx.business_id,
+    amount: tx.amount,
+    categoryValue: tx.category_final || tx.category_suggested,
+    evidenceStatus
+  });
+
+  db.prepare(`UPDATE transactions
+    SET policy_flags_json = ?, updated_at = CURRENT_TIMESTAMP
+    WHERE id = ?`).run(JSON.stringify(policyEvaluation.flags), transactionId);
+
+  return db.prepare('SELECT * FROM transactions WHERE id = ?').get(transactionId);
 };
