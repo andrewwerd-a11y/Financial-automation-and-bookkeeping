@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import {
   applyReviewAction,
   createTransaction,
+  getReviewHistory,
   getTransaction,
   linkEvidence,
   listDocuments,
@@ -9,15 +10,24 @@ import {
   unlinkEvidence,
   updateTransactionBusinessPurpose
 } from '../api/client';
-import type { Document, Transaction } from '../types';
+import type { Document, ReviewDecision, Transaction, TransactionDetail } from '../types';
 import { EmptyState, LoadingState } from '../components/StateBlocks';
+
+const formatReviewChanges = (raw: string) => {
+  try {
+    return JSON.stringify(JSON.parse(raw), null, 2);
+  } catch {
+    return raw;
+  }
+};
 
 export function TransactionsPage({ activeBusinessId }: { activeBusinessId: string }) {
   const [rows, setRows] = useState<Transaction[]>([]);
   const [documents, setDocuments] = useState<Document[]>([]);
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(true);
-  const [selected, setSelected] = useState<any>(null);
+  const [selected, setSelected] = useState<TransactionDetail | null>(null);
+  const [reviewHistory, setReviewHistory] = useState<ReviewDecision[]>([]);
   const [form, setForm] = useState({ date: '', vendor: '', amount: '', description_raw: '' });
   const [action, setAction] = useState({ actionType: 'approve_suggestion', categoryFinal: '', businessActivityFinal: '', note: '' });
   const [linkForm, setLinkForm] = useState({ documentId: '', relationType: '', strengthStatus: 'linked', businessPurposeNote: '' });
@@ -40,7 +50,10 @@ export function TransactionsPage({ activeBusinessId }: { activeBusinessId: strin
 
   const openDetail = async (id: string) => {
     try {
-      setSelected(await getTransaction(id));
+      setError('');
+      const [detail, history] = await Promise.all([getTransaction(id), getReviewHistory(id)]);
+      setSelected(detail);
+      setReviewHistory(history);
     } catch (err) {
       setError((err as Error).message);
     }
@@ -175,7 +188,7 @@ export function TransactionsPage({ activeBusinessId }: { activeBusinessId: strin
           <h4>Linked Evidence</h4>
           {selected.linked_evidence?.length ? (
             <ul>
-              {selected.linked_evidence.map((ev: any) => (
+              {selected.linked_evidence.map((ev) => (
                 <li key={ev.id}>
                   {ev.file_name} ({ev.strength_status})
                   {ev.business_purpose_note ? ` - ${ev.business_purpose_note}` : ''}
@@ -211,6 +224,30 @@ export function TransactionsPage({ activeBusinessId }: { activeBusinessId: strin
           <input placeholder="businessActivityFinal (optional)" value={action.businessActivityFinal} onChange={(e) => setAction({ ...action, businessActivityFinal: e.target.value })} />
           <input placeholder="note (optional)" value={action.note} onChange={(e) => setAction({ ...action, note: e.target.value })} />
           <button onClick={() => void runAction()}>Apply Review Action</button>
+
+          <h4>Review History</h4>
+          {reviewHistory.length === 0 ? <p>No review actions recorded yet.</p> : (
+            <table>
+              <thead>
+                <tr>
+                  <th>Date</th>
+                  <th>Action</th>
+                  <th>Note</th>
+                  <th>Changes</th>
+                </tr>
+              </thead>
+              <tbody>
+                {reviewHistory.map((entry) => (
+                  <tr key={entry.id}>
+                    <td>{entry.created_at}</td>
+                    <td>{entry.action_type}</td>
+                    <td>{entry.note ?? '-'}</td>
+                    <td><pre>{formatReviewChanges(entry.new_values)}</pre></td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          )}
         </div>
       )}
     </div>

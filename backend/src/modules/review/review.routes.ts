@@ -1,5 +1,6 @@
 import { Router } from 'express';
 import { z } from 'zod';
+import { db } from '../../db/client.js';
 import { applyReviewAction, getReviewQueue } from './review.service.js';
 import { refreshTreatmentForTransaction } from '../treatment/treatment.service.js';
 import { refreshPolicyFlagsForTransaction } from '../policies/policies.service.js';
@@ -17,6 +18,15 @@ const actionSchema = z.object({
 router.get('/queue', (req, res) => {
   const businessId = (req.query.businessId as string | undefined) ?? undefined;
   res.json(getReviewQueue(businessId));
+});
+
+router.get('/history/:transactionId', (req, res) => {
+  const transaction = db.prepare('SELECT id FROM transactions WHERE id = ?').get(req.params.transactionId) as { id: string } | undefined;
+  if (!transaction) return sendApiError(res, 404, 'TRANSACTION_NOT_FOUND', 'Transaction not found');
+
+  return res.json(db.prepare(`SELECT * FROM review_decisions
+    WHERE transaction_id = ?
+    ORDER BY created_at DESC, rowid DESC`).all(req.params.transactionId));
 });
 
 router.post('/actions/:transactionId', (req, res) => {

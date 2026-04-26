@@ -73,6 +73,34 @@ export type EvidenceLink = {
   created_at: string;
 };
 
+export type LinkedEvidenceRow = {
+  id: string;
+  transaction_id: string;
+  document_id: string;
+  relation_type?: string | null;
+  strength_status: 'linked' | 'weak';
+  business_purpose_note?: string | null;
+  created_at: string;
+  updated_at?: string | null;
+  file_name: string;
+  mime_type: string;
+  uploaded_at: string;
+};
+
+export type ReviewDecision = {
+  id: string;
+  transaction_id: string;
+  action_type: string;
+  previous_values: string;
+  new_values: string;
+  note?: string | null;
+  created_at: string;
+};
+
+export type TransactionDetail = Transaction & {
+  linked_evidence?: LinkedEvidenceRow[];
+};
+
 export type IngestionJob = {
   id: string;
   job_type: string;

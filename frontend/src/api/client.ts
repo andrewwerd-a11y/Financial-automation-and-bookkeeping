@@ -1,4 +1,4 @@
-import type { AppSetting, Document, ImportTemplate, IngestionJob, PolicyRule, ReconciliationCandidate, Transaction, TreatmentSummaryRow } from '../types';
+import type { AppSetting, Document, ImportTemplate, IngestionJob, PolicyRule, ReconciliationCandidate, ReviewDecision, Transaction, TransactionDetail, TreatmentSummaryRow } from '../types';
 
 const API = import.meta.env.VITE_API_BASE_URL || 'http://localhost:4000/api';
 
@@ -31,7 +31,7 @@ export const getDashboard = () => fetch(`${API}/dashboard`).then(parse<any>);
 export const getExportDownloadUrl = (id: string) => `${API}/exports/${id}/download`;
 
 export const listTransactions = (businessId?: string) => fetch(withParam(`${API}/transactions`, 'businessId', businessId)).then(parse<Transaction[]>);
-export const getTransaction = (id: string) => fetch(`${API}/transactions/${id}`).then(parse<Transaction>);
+export const getTransaction = (id: string) => fetch(`${API}/transactions/${id}`).then(parse<TransactionDetail>);
 export const createTransaction = (payload: { date: string; vendor: string; amount: number; description_raw?: string; businessId?: string; workspaceId?: string }) =>
   fetch(`${API}/transactions`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) }).then(parse<Transaction>);
 export const updateTransactionBusinessPurpose = (id: string, businessPurposeNote: string) =>
@@ -60,6 +60,8 @@ export const uploadDocument = (file: File, notes?: string, businessId?: string) 
 export const listReviewQueue = (businessId?: string) => fetch(withParam(`${API}/review/queue`, 'businessId', businessId)).then(parse<Transaction[]>);
 export const applyReviewAction = (transactionId: string, payload: { actionType: string; categoryFinal?: string; businessActivityFinal?: string; note?: string }) =>
   fetch(`${API}/review/actions/${transactionId}`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) }).then(parse<Transaction>);
+export const getReviewHistory = (transactionId: string) =>
+  fetch(`${API}/review/history/${transactionId}`).then(parse<ReviewDecision[]>);
 
 export const linkEvidence = (payload: { transactionId: string; documentId: string; relationType?: string; strengthStatus?: 'linked' | 'weak'; businessPurposeNote?: string }) =>
   fetch(`${API}/evidence/links`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) }).then(parse<any>);
