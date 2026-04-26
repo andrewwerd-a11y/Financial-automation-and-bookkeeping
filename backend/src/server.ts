@@ -87,6 +87,7 @@ if (import.meta.url === pathToFileURL(process.argv[1]).href) {
   const shutdown = () => {
     server.close(() => {
       db.close();
+      console.log('[shutdown] db closed');
       process.exit(0);
     });
   };
