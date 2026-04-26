@@ -48,16 +48,28 @@ export const updatePolicy = (id: string, input: {
   active?: boolean;
   config?: Record<string, unknown>;
 }) => {
-  db.prepare(`UPDATE policy_rules
-    SET rule_type = ?, threshold_value = ?, category_value = ?, active = ?, config_json = ?, updated_at = CURRENT_TIMESTAMP
-    WHERE id = ?`).run(
-    input.ruleType,
-    input.thresholdValue ?? null,
-    input.categoryValue ?? null,
-    input.active === false ? 0 : 1,
-    JSON.stringify(input.config ?? {}),
-    id
-  );
+  if (input.config !== undefined) {
+    db.prepare(`UPDATE policy_rules
+      SET rule_type = ?, threshold_value = ?, category_value = ?, active = ?, config_json = ?, updated_at = CURRENT_TIMESTAMP
+      WHERE id = ?`).run(
+      input.ruleType,
+      input.thresholdValue ?? null,
+      input.categoryValue ?? null,
+      input.active === false ? 0 : 1,
+      JSON.stringify(input.config),
+      id
+    );
+  } else {
+    db.prepare(`UPDATE policy_rules
+      SET rule_type = ?, threshold_value = ?, category_value = ?, active = ?, updated_at = CURRENT_TIMESTAMP
+      WHERE id = ?`).run(
+      input.ruleType,
+      input.thresholdValue ?? null,
+      input.categoryValue ?? null,
+      input.active === false ? 0 : 1,
+      id
+    );
+  }
 
   return db.prepare('SELECT * FROM policy_rules WHERE id = ?').get(id);
 };
