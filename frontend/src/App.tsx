@@ -79,7 +79,7 @@ export default function App() {
           {active === 'ingestion_jobs' && <IngestionJobsPage />}
           {active === 'import_templates' && <ImportTemplatesPage />}
           {active === 'documents' && <DocumentsPage activeBusinessId={activeBusinessId} />}
-          {active === 'settings' && <SettingsPage />}
+          {active === 'settings' && <SettingsPage activeWorkspaceId={activeWorkspaceId} />}
         </main>
       </section>
     </div>
