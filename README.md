@@ -1,86 +1,101 @@
-# Financial Intake / Bookkeeping Platform
+# Financial Automation & Bookkeeping Platform
 
-## Phase 10 — Productization layer
+A local-first, single-operator financial intake and bookkeeping automation tool.
+Runs fully offline — no external services required beyond Node.js.
 
-Phase 10 introduces minimal product-oriented structure (workspace/operator/settings foundations) while keeping the platform local/dev-friendly and extendable.
-
-## What Phase 10 adds
-
-### Backend product foundations
-- New **workspace/operator** models:
-  - `workspaces`
-  - `users`
-  - `workspace_members`
-- New **persistent settings** model:
-  - `app_settings` (workspace-scoped key/value settings)
-- Workspace-aware structural additions on key data:
-  - `transactions.workspace_id`
-  - `documents.workspace_id`
-  - `export_jobs.workspace_id`
-  - `businesses.workspace_id`
-  - `policy_rules.workspace_id`
-- New APIs:
-  - `GET/POST /api/workspaces`
-  - `GET/POST /api/users`
-  - `GET/POST /api/users/workspace-members`
-  - `GET/POST /api/settings`
-
-### Existing multi-business/policy flow alignment
-- Businesses now require a workspace context.
-- Policies now require workspace + business context.
-- Transaction policy flags continue to be evaluated on create and persisted.
-
-### Frontend product structure refinement
-- Added **Setup** placeholder page for product setup sequence.
-- Added **Workspace** page:
-  - create workspaces
-  - create operators
-  - assign workspace membership
-- App shell now shows active workspace + active business context.
-- Existing business/policy workflows continue to operate within this more product-like structure.
-
----
-
-## Startup / run
+## Quick start
 
 ```bash
+# Install all workspace dependencies
 npm install
+
+# Rebuild native addon for your Node version (first time or after Node upgrade)
+npm rebuild better-sqlite3 -w backend
+
+# Initialize the database
 npm run db:init -w backend
+
+# Start backend (port 4000) and frontend (port 5173) in separate terminals
 npm run dev -w backend
 npm run dev -w frontend
 ```
 
-Optional tests:
+Open http://localhost:5173 in your browser.
+
+## Environment variables
+
+Copy `.env.example` and edit as needed:
 
 ```bash
-npm run test -w backend
+cp .env.example backend/.env
 ```
 
----
+Key variables:
 
-## Product-oriented foundations now present
+| Variable | Default | Purpose |
+|---|---|---|
+| `PORT` | `4000` | Backend HTTP port |
+| `FIN_DB_FILE` | `<backend>/data/finance.db` | SQLite database path |
+| `FIN_DB_SEED` | `0` | Set to `1` to seed demo data on startup |
+| `VITE_API_BASE_URL` | `http://localhost:4000/api` | Frontend API base |
 
-- Workspace container model (for future org-level boundaries)
-- Operator/user model and workspace membership
-- Persistent workspace settings model
-- Business and policy records scoped with workspace context
-- Product setup placeholder path in frontend
+## Running tests
 
----
+```bash
+npm test -w backend
+```
 
-## Known limitations
+47 unit + integration + e2e tests covering all routes.
 
-- No full production auth or RBAC yet.
-- No billing/subscription model.
-- Workspace security boundaries are structural only in this phase.
-- No deployment automation/SSO/production hardening in this phase.
+## Project layout
 
----
+```
+backend/          Express 4 + better-sqlite3 API server
+  src/
+    db/           schema.sql, client (WAL mode), seed data
+    modules/      one folder per domain (transactions, evidence, treatment, …)
+    shared/       sendApiError, makeId helpers
+  tests/
+    unit/         service-layer tests
+    integration/  supertest API route tests
+    e2e/          end-to-end workflow smoke tests
 
-## Still required for true production readiness
+frontend/         React 18 + Vite SPA
+  src/
+    api/          typed fetch wrappers (client.ts)
+    pages/        one component per tab
+    types/        shared TypeScript types (index.ts)
 
-- full auth/session and permission model
-- secure multi-tenant isolation controls
-- deployment/runtime hardening and observability
-- billing/entitlement controls
-- deeper onboarding and support tooling
+docs/             Architecture, schema, and runbook references
+audit/            Audit findings, decisions, and phase reports
+```
+
+## Key concepts
+
+- **Transactions** are the central entity. Every imported or manually-entered
+  financial row is a transaction.
+- **Evidence links** connect transactions to uploaded documents (receipts, invoices).
+  A transaction's `evidence_status` (`missing` / `weak` / `linked`) is derived live.
+- **Treatment** is the tax/accounting classification suggested automatically and
+  confirmed by the operator. `treatment_suggested` is computed; `treatment_final`
+  is the operator's override.
+- **Policies** are per-business rules (amount thresholds, category restrictions,
+  missing evidence guards) evaluated on transaction create/import.
+- **Connectors** simulate external bank/card feed imports. Real connector
+  integration requires replacing the simulated generator.
+
+## Docs
+
+- [Architecture](docs/ARCHITECTURE.md)
+- [Schema reference](docs/SCHEMA.md)
+- [Runbook](docs/RUNBOOK.md)
+- [Post-audit backlog](docs/POST_AUDIT_BACKLOG.md)
+
+## Known limitations / not yet production-ready
+
+- No authentication or RBAC — single-operator, local-only use only.
+- Workspace security boundaries are structural (schema columns) but not enforced
+  by middleware.
+- Connector imports use a simulated random-data generator; real bank feeds need
+  actual connector code.
+- No deployment automation, observability, or production hardening.
