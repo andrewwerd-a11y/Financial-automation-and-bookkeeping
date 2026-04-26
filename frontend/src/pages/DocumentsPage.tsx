@@ -117,7 +117,7 @@ export function DocumentsPage({ activeBusinessId }: { activeBusinessId: string }
           {selected.linked_transactions?.length ? (
             <ul>
               {selected.linked_transactions.map((row: any) => (
-                <li key={row.id}>{row.vendor} - {row.date} - ${row.amount} <button onClick={() => void unlink(row.id)}>Unlink</button></li>
+                <li key={row.link_id}>{row.vendor} - {row.date} - ${row.amount} <button onClick={() => void unlink(row.link_id)}>Unlink</button></li>
               ))}
             </ul>
           ) : <p>No linked transactions.</p>}

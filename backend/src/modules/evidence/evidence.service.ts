@@ -42,7 +42,8 @@ export const listEvidenceForTransaction = (transactionId: string) => db.prepare(
   WHERE e.transaction_id = ?
   ORDER BY e.created_at DESC`).all(transactionId);
 
-export const listTransactionsForDocument = (documentId: string) => db.prepare(`SELECT e.*, t.vendor, t.date, t.amount, t.review_status
+export const listTransactionsForDocument = (documentId: string) => db.prepare(`SELECT e.id as link_id, e.strength_status, e.business_purpose_note, e.created_at as linked_at,
+    t.id, t.vendor, t.date, t.amount, t.review_status
   FROM evidence_links e
   JOIN transactions t ON t.id = e.transaction_id
   WHERE e.document_id = ?
