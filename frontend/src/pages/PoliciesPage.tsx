@@ -19,7 +19,6 @@ export function PoliciesPage({ activeWorkspaceId, activeBusinessId }: { activeWo
     try {
       setLoading(true);
       setError('');
-      setMessage('');
       setRows(await listPolicies({ workspaceId: activeWorkspaceId || undefined, businessId: activeBusinessId || undefined }));
     } catch (err) {
       setError((err as Error).message);

@@ -1,4 +1,5 @@
 import { screen } from '@testing-library/react';
+import userEvent from '@testing-library/user-event';
 import { http, HttpResponse } from 'msw';
 import { describe, expect, it } from 'vitest';
 import { BASE } from '../mocks/handlers';
@@ -31,5 +32,14 @@ describe('PoliciesPage', () => {
     server.use(http.get(`${BASE}/policies`, () => HttpResponse.error()));
     renderPage(<PoliciesPage activeWorkspaceId="wsp_test1" activeBusinessId="biz_test1" />);
     expect(await screen.findByText(/Error:/)).toBeInTheDocument();
+  });
+
+  it('keeps the backfill success message visible after the list reloads', async () => {
+    const user = userEvent.setup();
+    renderPage(<PoliciesPage activeWorkspaceId="wsp_test1" activeBusinessId="biz_test1" />);
+    await waitForLoadingToClear(/Loading policies/);
+
+    await user.click(screen.getByRole('button', { name: 'Backfill Existing Transactions' }));
+    expect(await screen.findByText(/Backfilled/)).toBeInTheDocument();
   });
 });
