@@ -8,6 +8,8 @@
     "build": "npm run build -w backend && npm run build -w frontend",
     "typecheck": "npm run typecheck -w backend && npm run typecheck -w frontend",
     "test": "npm run test -w backend",
-    "test:e2e": "npm run test -w e2e"
+    "test:e2e": "npm run test -w e2e",
+    "test:frontend": "npm run test -w frontend",
+    "test:all": "npm run test -w backend && npm run test -w frontend && npm run test:e2e"
   }
 }
