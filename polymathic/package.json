@@ -1,0 +1,27 @@
+{
+  "name": "polymathic",
+  "private": true,
+  "version": "0.1.0",
+  "description": "End-to-end self-employment platform: aggregate work from every source, match it to the right people, and act as general contractor.",
+  "type": "module",
+  "workspaces": [
+    "packages/core",
+    "packages/connectors",
+    "apps/api"
+  ],
+  "engines": {
+    "node": ">=22"
+  },
+  "scripts": {
+    "dev": "npm run dev -w @polymathic/api",
+    "typecheck": "tsc -p tsconfig.json --noEmit",
+    "test": "vitest run",
+    "test:watch": "vitest"
+  },
+  "devDependencies": {
+    "@types/node": "^22.10.0",
+    "tsx": "^4.19.0",
+    "typescript": "~5.9.0",
+    "vitest": "^3.2.0"
+  }
+}
