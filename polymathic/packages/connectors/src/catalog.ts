@@ -63,4 +63,12 @@ export const INTEGRATION_CATALOG: CatalogEntry[] = [
   { id: 'quickbooks', name: 'QuickBooks Online', category: 'accounting', access: 'oauth2', status: 'planned', capabilities: ['bookkeeping'], notes: 'Sync invoices and expenses.' },
   { id: 'google-calendar', name: 'Google Calendar', category: 'calendar', access: 'oauth2', status: 'planned', capabilities: ['availability'], notes: 'Derive availability windows automatically.' },
   { id: 'twilio', name: 'Twilio', category: 'communications', access: 'public_api', status: 'planned', capabilities: ['messaging'], notes: 'Masked calls/SMS, safety check-ins, SOS.' },
+  { id: 'xero', name: 'Xero', category: 'accounting', access: 'oauth2', status: 'planned', capabilities: ['bookkeeping'], notes: 'Alternative to QuickBooks for invoices and expenses.' },
+  { id: 'google-drive', name: 'Google Drive / Dropbox', category: 'accounting', access: 'oauth2', status: 'planned', capabilities: ['bookkeeping'], notes: 'Import existing documents into the vault.' },
+
+  // Growth, advertising & AI
+  { id: 'anthropic', name: 'Claude (Anthropic API)', category: 'communications', access: 'public_api', status: 'implemented', capabilities: ['profile'], notes: 'Assistant: planning, paperwork, research with web search.' },
+  { id: 'google-business-profile', name: 'Google Business Profile', category: 'communications', access: 'oauth2', status: 'planned', capabilities: ['profile', 'reputation'], notes: 'Publish verified profiles, posts, and reviews for local search.' },
+  { id: 'meta-ads', name: 'Meta (Facebook/Instagram) ads', category: 'communications', access: 'oauth2', status: 'planned', capabilities: ['profile'], notes: 'Generated local ad campaigns; user approves creative.' },
+  { id: 'careeronestop', name: 'CareerOneStop (US DOL)', category: 'credentials', access: 'public_api', status: 'planned', capabilities: ['profile'], notes: 'Training programs, licenses, and certifications by state for growth research.' },
 ];

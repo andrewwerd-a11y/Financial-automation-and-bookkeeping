@@ -14,6 +14,12 @@ import {
   type Connector,
   type ConnectorContext,
 } from '@polymathic/connectors';
+import type { MessagesClient } from '@polymathic/ai';
+import { MemoryVaultStorage, Vault, ephemeralKeyring, keyringFromEnv } from '@polymathic/vault';
+import { assistantRoutes } from './routes/assistant.js';
+import { businessRoutes } from './routes/business.js';
+import { vaultRoutes } from './routes/vault.js';
+import { JOB_BODY_SCHEMA, type JobInput } from './jobs.js';
 import { MemoryStore } from './store.js';
 
 const PENDING_AUTH_TTL_MS = 10 * 60_000;
@@ -25,8 +31,6 @@ const STATIC_FILES: Record<string, { path: string; type: string }> = {
   '/vendor/leaflet.css': { path: require.resolve('leaflet/dist/leaflet.css'), type: 'text/css' },
 };
 
-type JobDefaults = 'requiredCertifications' | 'requiredEquipment' | 'minTrustTier' | 'requiresBackgroundCheck' | 'headcount';
-type JobInput = Omit<Opportunity, 'id' | 'source' | JobDefaults> & Partial<Pick<Opportunity, JobDefaults>>;
 
 export interface AppOptions {
   store: MemoryStore;
@@ -35,6 +39,9 @@ export interface AppOptions {
   env?: Record<string, string | undefined>;
   fetch?: typeof fetch;
   now?: () => Date;
+  vault?: Vault;
+  /** Anthropic client for the assistant; the assistant route returns 503 without one. */
+  aiClient?: MessagesClient;
 }
 
 export function buildApp(opts: AppOptions) {
@@ -46,6 +53,9 @@ export function buildApp(opts: AppOptions) {
   const connectorById = new Map(connectors.map((c) => [c.id, c]));
   const baseUrl = env.PUBLIC_BASE_URL ?? 'http://localhost:4100';
 
+  const vault =
+    opts.vault ?? new Vault(new MemoryVaultStorage(), env.VAULT_MASTER_KEYS ? keyringFromEnv(env) : ephemeralKeyring(), now);
+
   const app = Fastify({ logger: env.NODE_ENV !== 'test' && env.LOG !== '0' });
 
   const contextFor = (workerId: string) => (c: Connector): ConnectorContext => ({
@@ -55,7 +65,14 @@ export function buildApp(opts: AppOptions) {
     now,
   });
 
+  /** The whole market, for gap analysis and the assistant: every source, no radius. */
+  const market = async () => (await aggregateOpportunities(connectors, contextFor('anonymous'), {})).opportunities;
+
   app.get('/health', async () => ({ ok: true }));
+
+  businessRoutes(app, { store, now, market });
+  vaultRoutes(app, { vault });
+  assistantRoutes(app, { store, vault, market, client: opts.aiClient });
 
   for (const [route, file] of Object.entries(STATIC_FILES)) {
     const body = readFileSync(file.path);
@@ -108,21 +125,7 @@ export function buildApp(opts: AppOptions) {
   app.post<{ Body: JobInput }>(
     '/jobs',
     {
-      schema: {
-        body: {
-          type: 'object',
-          required: ['title', 'description', 'category', 'engagement', 'urgency', 'remote', 'requiredSkills'],
-          properties: {
-            title: { type: 'string', minLength: 3 },
-            description: { type: 'string' },
-            category: { type: 'string', minLength: 1 },
-            engagement: { enum: ['gig', 'contract', 'temp', 'full_time'] },
-            urgency: { enum: ['immediate', 'scheduled', 'long_term'] },
-            remote: { type: 'boolean' },
-            requiredSkills: { type: 'array' },
-          },
-        },
-      },
+      schema: { body: JOB_BODY_SCHEMA },
     },
     async (req, reply) => {
       const id = `pm_${randomUUID()}`;

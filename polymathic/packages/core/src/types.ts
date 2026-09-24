@@ -142,6 +142,22 @@ export interface Opportunity {
   requiresBackgroundCheck: boolean;
   /** Number of workers needed; >1 means a crew job. */
   headcount: number;
+  /** Organization that posted it, when posted on Polymathic by a business or crew. */
+  postedBy?: string;
+}
+
+export type OrgRole = 'owner' | 'admin' | 'dispatcher' | 'lead' | 'member';
+
+/** A business hiring through Polymathic, or a crew of workers taking jobs together. */
+export interface Organization {
+  id: string;
+  name: string;
+  kind: 'business' | 'crew';
+  home: Place;
+  members: { userId: string; role: OrgRole }[];
+  verification: { businessLicense: boolean; insurance: boolean; taxIdVerified: boolean };
+  /** Trades a crew offers, or a business commonly hires for. */
+  trades?: string[];
 }
 
 export type TrustTier = 'new' | 'verified' | 'trusted' | 'pro' | 'elite';

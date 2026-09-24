@@ -1,4 +1,4 @@
-import type { Opportunity, Place, TrustTier, WorkerProfile } from '@polymathic/core';
+import type { Opportunity, Organization, Place, TrustTier, WorkerProfile } from '@polymathic/core';
 
 const AUSTIN: Place = { lat: 30.2672, lng: -97.7431, region: 'Austin, TX' };
 const DOWNTOWN: Place = { lat: 30.2669, lng: -97.7428, region: 'Downtown Austin, TX' };
@@ -7,6 +7,11 @@ const NORTH_LAMAR: Place = { lat: 30.3521, lng: -97.7110, region: 'North Austin,
 const SOUTH_CONGRESS: Place = { lat: 30.2340, lng: -97.7560, region: 'South Austin, TX' };
 const ROUND_ROCK: Place = { lat: 30.5083, lng: -97.6789, region: 'Round Rock, TX' };
 const SAN_MARCOS: Place = { lat: 29.8833, lng: -97.9414, region: 'San Marcos, TX' };
+const CEDAR_PARK: Place = { lat: 30.5052, lng: -97.8203, region: 'Cedar Park, TX' };
+const PFLUGERVILLE: Place = { lat: 30.4394, lng: -97.62, region: 'Pflugerville, TX' };
+const BUDA: Place = { lat: 30.0852, lng: -97.8403, region: 'Buda, TX' };
+const WEST_LAKE: Place = { lat: 30.2966, lng: -97.8036, region: 'West Lake Hills, TX' };
+const CONVENTION_CENTER: Place = { lat: 30.2638, lng: -97.7394, region: 'Austin Convention Center, TX' };
 const SAN_ANTONIO: Place = { lat: 29.4241, lng: -98.4936, region: 'San Antonio, TX' };
 
 /** Demo data so the API is useful before any real connector is authorized. */
@@ -61,7 +66,49 @@ export function seedData(now = new Date()) {
       availability: { availableNow: false, windows: [], maxTravelKm: 20, remoteOk: true },
       history: { completedJobs: 2, averageRating: 5, ratingCount: 2, onTimeRate: 1, cancellations: 0, disputesLost: 0 },
       verification: { identity: true, backgroundCheck: 'none', insurance: false, businessLicense: false },
-      growthInterests: ['accounting'],
+      growthInterests: ['bookkeeping'],
+    },
+    {
+      id: 'w_maria',
+      displayName: 'Maria L.',
+      home: PFLUGERVILLE,
+      skills: [
+        { id: 'customer-service', level: 4, evidence: 'platform_history' },
+        { id: 'patient-care', level: 2, evidence: 'self_reported' },
+      ],
+      certifications: [
+        { id: 'food-handler', issuer: 'Texas DSHS-accredited provider', verified: true },
+        { id: 'cpr-first-aid', issuer: 'American Red Cross', verified: true },
+      ],
+      equipment: [{ id: 'car' }],
+      availability: {
+        availableNow: false,
+        windows: [{ start: now.toISOString(), end: inHours(24 * 7) }],
+        maxTravelKm: 40,
+        remoteOk: false,
+      },
+      history: { completedJobs: 35, averageRating: 4.9, ratingCount: 30, onTimeRate: 0.97, cancellations: 1, disputesLost: 0, firstJobAt: daysAgo(400) },
+      verification: { identity: true, backgroundCheck: 'clear', insurance: false, businessLicense: false },
+      growthInterests: ['cna'],
+    },
+  ];
+
+  const organizations: Organization[] = [
+    {
+      id: 'org_greenleaf',
+      name: 'Greenleaf Property Management',
+      kind: 'business',
+      home: AUSTIN,
+      members: [{ userId: 'u_dana', role: 'owner' }],
+      verification: { businessLicense: true, insurance: true, taxIdVerified: true },
+    },
+    {
+      id: 'crew_alex',
+      name: "Alex R.'s Crew",
+      kind: 'crew',
+      home: AUSTIN,
+      members: [{ userId: 'w_alex', role: 'lead' }],
+      verification: { businessLicense: false, insurance: false, taxIdVerified: false },
     },
   ];
 
@@ -97,7 +144,7 @@ export function seedData(now = new Date()) {
     job('pm_drywall', {
       title: 'Drywall patch and paint, 3 rooms',
       description: 'Water damage repair in a rental unit.',
-      category: 'construction',
+      category: 'painting-drywall',
       engagement: 'contract',
       urgency: 'scheduled',
       location: ROUND_ROCK,
@@ -148,11 +195,12 @@ export function seedData(now = new Date()) {
       requiredSkills: [{ id: 'drywall', minLevel: 2 }],
       minTrustTier: 'pro',
       requiresBackgroundCheck: true,
+      postedBy: 'org_greenleaf',
     }),
     job('pm_sa_tile', {
       title: 'Bathroom tile job',
       description: 'Too far for most Austin workers.',
-      category: 'construction',
+      category: 'tile',
       engagement: 'gig',
       urgency: 'scheduled',
       location: SAN_ANTONIO,
@@ -164,7 +212,7 @@ export function seedData(now = new Date()) {
     job('pm_remote_books', {
       title: 'Monthly bookkeeping for a landscaping company',
       description: 'Reconcile 2 accounts, categorize, prep for CPA.',
-      category: 'accounting',
+      category: 'bookkeeping',
       engagement: 'contract',
       urgency: 'long_term',
       remote: true,
@@ -173,7 +221,88 @@ export function seedData(now = new Date()) {
       requiredSkills: [{ id: 'bookkeeping', minLevel: 3 }],
       minTrustTier: 'verified',
     }),
+    job('pm_junk', {
+      title: 'Garage cleanout & haul-away',
+      description: 'One-car garage, mostly boxes and old furniture.',
+      category: 'junk-removal',
+      engagement: 'gig',
+      urgency: 'scheduled',
+      location: CEDAR_PARK,
+      startsAt: inHours(26),
+      estimatedHours: 4,
+      compensation: { kind: 'fixed', amount: 280, currency: 'USD' },
+      requiredSkills: [],
+      requiredEquipment: ['pickup-truck'],
+    }),
+    job('pm_pressure', {
+      title: 'Pressure wash house exterior & driveway',
+      description: 'Two-story home, plus a 3-car driveway.',
+      category: 'pressure-washing',
+      engagement: 'gig',
+      urgency: 'scheduled',
+      location: PFLUGERVILLE,
+      startsAt: inHours(50),
+      estimatedHours: 5,
+      compensation: { kind: 'fixed', amount: 350, currency: 'USD' },
+      requiredSkills: [],
+      requiredEquipment: ['pressure-washer'],
+    }),
+    job('pm_drone', {
+      title: 'Drone roof inspection photos',
+      description: 'Insurance claim documentation for hail damage.',
+      category: 'drone-services',
+      engagement: 'gig',
+      urgency: 'scheduled',
+      location: WEST_LAKE,
+      startsAt: inHours(40),
+      estimatedHours: 2,
+      compensation: { kind: 'fixed', amount: 250, currency: 'USD' },
+      requiredSkills: [],
+      requiredCertifications: ['faa-part-107'],
+      requiredEquipment: ['drone'],
+    }),
+    job('pm_event', {
+      title: 'Conference event staff (6 people)',
+      description: 'Registration desk and catering support.',
+      category: 'event-staffing',
+      engagement: 'gig',
+      urgency: 'scheduled',
+      location: CONVENTION_CENTER,
+      startsAt: inHours(60),
+      estimatedHours: 6,
+      compensation: { kind: 'hourly', amount: 22, currency: 'USD' },
+      requiredSkills: [],
+      requiredCertifications: ['food-handler'],
+      headcount: 6,
+      postedBy: 'org_greenleaf',
+    }),
+    job('pm_cna', {
+      title: 'Weekend CNA shifts at assisted living',
+      description: 'Two 12-hour weekend shifts.',
+      category: 'cna',
+      engagement: 'temp',
+      urgency: 'scheduled',
+      location: BUDA,
+      startsAt: inHours(100),
+      estimatedHours: 12,
+      compensation: { kind: 'hourly', amount: 24, currency: 'USD' },
+      requiredSkills: [],
+      requiredCertifications: ['cna-certification'],
+      requiresBackgroundCheck: true,
+      headcount: 2,
+    }),
+    job('pm_courier', {
+      title: 'Same-day courier route',
+      description: 'Pharmacy deliveries, 12–15 stops.',
+      category: 'delivery',
+      engagement: 'gig',
+      urgency: 'immediate',
+      location: WEST_LAKE,
+      estimatedHours: 5,
+      compensation: { kind: 'hourly', amount: 23, currency: 'USD' },
+      requiredSkills: [],
+    }),
   ];
 
-  return { workers, opportunities };
+  return { workers, opportunities, organizations };
 }

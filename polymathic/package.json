@@ -7,6 +7,8 @@
   "workspaces": [
     "packages/core",
     "packages/connectors",
+    "packages/vault",
+    "packages/ai",
     "apps/api"
   ],
   "engines": {

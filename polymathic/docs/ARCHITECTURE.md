@@ -1,36 +1,42 @@
 # Architecture
 
 ```
-            ┌──────────────────────── apps/api (Fastify) ────────────────────────┐
- clients →  │ /workers/:id/opportunities   /workers/:id/growth   /jobs   /connect │
-            └───────────────┬───────────────────────────────┬────────────────────┘
-                            │                               │
-                 packages/connectors                  packages/core
-   ┌──────────────────────────────────────┐   ┌──────────────────────────────┐
-   │ Connector interface                  │   │ Domain model (types.ts)      │
-   │ OAuth2 + PKCE, token refresh         │   │ Trust score  (trust.ts)      │
-   │ aggregateOpportunities + dedupe      │──▶│ Pay normalizer (pay.ts)      │
-   │ Adapters: polymathic, usajobs, upwork│   │ Matching (matching.ts)       │
-   │ INTEGRATION_CATALOG                  │   │ Growth planner (growth.ts)   │
-   └──────────────────────────────────────┘   └──────────────────────────────┘
+                   ┌──────────────────────────── apps/api (Fastify) ─────────────────────────────┐
+ web map / apps →  │ matches · growth · equipment · market gaps · trades · resume                │
+                   │ orgs & job posting · candidates · engagements (escrow) · reviews            │
+                   │ vault (owner-only) · forms · assistant · OAuth connect                      │
+                   └──────┬───────────────┬─────────────────┬─────────────────┬──────────────────┘
+                          │               │                 │                 │
+              packages/connectors   packages/core     packages/vault     packages/ai
+              ┌──────────────────┐ ┌────────────────┐ ┌───────────────┐ ┌──────────────────────┐
+              │ Connector iface  │ │ trust · pay    │ │ AES-256-GCM   │ │ Claude (Opus 5)      │
+              │ OAuth2 + PKCE    │ │ matching       │ │ per-user DEK  │ │ manual tool loop     │
+              │ aggregate+dedupe │ │ trades (82)    │ │ KEK rotation  │ │ platform tools over  │
+              │ catalog          │ │ equipment      │ │ audit log     │ │ core + vault         │
+              │ adapters         │ │ market gaps    │ │ doc search    │ │ web search for       │
+              └──────────────────┘ │ engagement FSM │ │ autofill      │ │ requirements research│
+                                   │ reviews resume │ └───────────────┘ └──────────────────────┘
+                                   └────────────────┘
 ```
 
 ## Key decisions
 
-- **Normalize at the edge.** Each connector turns platform data into core `Opportunity` and `EarningsRecord` shapes. The core never knows where a job came from. New platforms are added by writing one adapter.
-- **Connectors are stateless.** Credentials come in through a per-call `ConnectorContext`. Token storage, encryption, and refresh belong to the app layer.
-- **Partial failure is normal.** Aggregation uses `Promise.allSettled` and reports per-source errors next to results.
-- **Hard blockers vs. soft score.** Matching separates *can't* (missing cert, out of range, below trust tier) from *how good* (skill fit, pay, proximity, timing, growth). Blockers marked `unlockable` feed the growth planner.
+- **Normalize at the edge.** Connectors turn platform data into core `Opportunity` and `EarningsRecord` shapes. Job categories are trade ids from the taxonomy, so gap analysis, growth plans, and logistics work the same for every source.
+- **Hard blockers vs. soft score.** Matching separates *can't* (missing cert, out of range, trust tier) from *how good* (skill fit, pay, proximity, timing, growth). Fixable blockers feed the growth planner, equipment investments, and entry options.
+- **Money moves only on state transitions.** `engagement.ts` is a state machine that decides *when* money may move. The payment processor (Stripe Connect, planned) does the moving. Work can't start until escrow is funded.
+- **Envelope encryption for user data.** Each user's records are encrypted with their own data key, which is stored only wrapped by a master key (KMS in production). Ciphertext is bound to owner and record id via GCM AAD. Only non-sensitive metadata (category, expiry date) is stored in the clear, so reminders work without decrypting anything.
+- **The assistant only sees what tools return.** Tools are scoped to the signed-in user and return masked sensitive values. The system prompt is frozen for prompt caching, and per-task instructions ride in the user turn. Tool-input errors go back to the model as `is_error` results. Refusals stop the loop, and server-side fallbacks retry on another model automatically.
 - **TypeScript monorepo, npm workspaces.** Packages export TypeScript source directly. `tsx` and `vitest` run it without a build step for now.
 
 ## Next infrastructure steps
 
 | Concern | Plan |
 |---|---|
-| Persistence | Postgres + PostGIS (geo radius queries), Drizzle or Kysely for access |
-| Secrets | OAuth tokens encrypted at rest (envelope encryption, KMS) |
-| Auth | Passkeys/OAuth sign-in for users and org accounts, with role-based access for crews and businesses |
-| Jobs | Queue (BullMQ or Postgres-based) for connector syncs, token refresh, and notifications |
-| Real-time | WebSocket/SSE for "available now" dispatch |
+| Identity | Replace the `x-user-id` dev stub with passkeys/OAuth sign-in, sessions, and org roles |
+| Persistence | Postgres + PostGIS. The vault's `VaultStorage` interface maps to one table plus a keys table |
+| Keys | Master keys in a cloud KMS/HSM. Per-tenant key policies |
+| Documents | OCR/parsing pipeline (Claude vision or PDF input) fills the `text` field used by search and the assistant |
+| Payments | Stripe Connect: escrow via separate charges and transfers, payouts, 1099s |
+| Jobs & events | Queue for connector syncs, token refresh, auto-approval sweeps, expiry reminders |
 | Clients | Next.js web dashboard, then React Native mobile (location, check-ins, SOS) |
-| Search | Postgres full-text first, then embeddings for semantic skill/job matching |
+| Search | Postgres full-text, then embeddings for semantic skill/job matching |

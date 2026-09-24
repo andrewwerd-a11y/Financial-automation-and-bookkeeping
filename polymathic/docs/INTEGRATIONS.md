@@ -25,8 +25,19 @@ Note: aggregators give us a worker's *history and earnings*, not those platforms
 3. Export a pure `map<Platform>Item()` function and test it against a recorded fixture.
 4. Register it in `apps/api/src/main.ts`, controlled by its env vars.
 
+## Support-system integrations
+
+| Need | Integration | Status |
+|---|---|---|
+| AI planning, paperwork, research | Claude via the Anthropic API (`packages/ai`), with server-side web search for live licensing/school requirements | Implemented |
+| Secure payments & escrow | Stripe Connect (charges held until approval, then transfers; 1099s) | State machine built; processor planned |
+| Document import | Google Drive / Dropbox OAuth, email forwarding, phone camera + OCR | Planned |
+| Books & taxes | Plaid bank feeds, QuickBooks / Xero sync, quarterly estimate reminders | Planned |
+| Advertising & local search | Google Business Profile, Meta ads, schema.org structured data on hosted storefronts | Planned |
+| Growth research data | US DOL CareerOneStop (programs, licenses, certifications by state) plus web search | Planned |
+
 ## Accounts and keys we'll need
 
-- **Now (free/self-serve):** USAJOBS API key, Adzuna API key, Google Cloud OAuth client (Calendar), Stripe account (Connect), Plaid dev account, Twilio account
+- **Now (free/self-serve):** Anthropic API key, USAJOBS API key, Adzuna API key, Google Cloud OAuth client (Calendar, Business Profile), Stripe account (Connect), Plaid dev account, Twilio account
 - **Apply early (approval takes weeks):** Upwork developer app, Argyle (or Pinwheel/Truv), Checkr, Persona, Thumbtack partner, Indeed partner
 - **Business prerequisites:** registered business entity, privacy policy & ToS, FCRA permissible-purpose process for background checks

@@ -4,6 +4,7 @@
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>Polymathic Work Map</title>
+  <link rel="icon" href="data:," />
   <link rel="stylesheet" href="/vendor/leaflet.css" />
   <style>
     :root {
@@ -36,7 +37,8 @@
     .job .b { font-size: 12px; margin-top: 4px; color: var(--unlock); }
     .pay { float: right; font-weight: 700; }
     .step { display: flex; justify-content: space-between; gap: 8px; padding: 4px 0; }
-    .step span:last-child { color: var(--ok); font-weight: 600; white-space: nowrap; }
+    .step > span:last-child { color: var(--ok); font-weight: 600; white-space: nowrap; }
+    p.m, span.m { color: var(--muted); font-size: 12px; font-weight: 400; }
     .leaflet-popup-content { font: 13px/1.4 system-ui, sans-serif; }
     @media (max-width: 760px) {
       main { grid-template-columns: 1fr; grid-template-rows: 55vh auto; height: auto; }
@@ -63,6 +65,8 @@
         </div>
       </section>
       <section><h2>Grow into more work</h2><div id="growth"></div></section>
+      <section><h2>Your equipment can earn</h2><div id="gear"></div></section>
+      <section><h2>Where the gaps are</h2><div id="gaps"></div></section>
       <section><h2>Opportunities</h2><div id="jobs"></div></section>
     </aside>
   </main>
@@ -100,10 +104,12 @@
     async function load() {
       const workerId = $('worker').value;
       const showBlocked = $('showBlocked').checked;
-      const [profile, opps, growth] = await Promise.all([
+      const [profile, opps, growth, gear, gaps] = await Promise.all([
         fetch(`/workers/${workerId}`).then((r) => r.json()),
         fetch(`/workers/${workerId}/opportunities?includeIneligible=${showBlocked}`).then((r) => r.json()),
         fetch(`/workers/${workerId}/growth`).then((r) => r.json()),
+        fetch(`/workers/${workerId}/equipment`).then((r) => r.json()),
+        fetch('/market/gaps').then((r) => r.json()),
       ]);
       const w = profile.worker;
       $('trust').textContent = `Trust ${profile.trust.score}/100 · ${profile.trust.tier}`;
@@ -141,6 +147,19 @@
       $('growth').innerHTML = growth.plan.slice(0, 4).map((s) =>
         `<div class="step"><span>${esc(s.label)}</span><span>${s.unlocksNow ? `+${s.unlocksNow} job · $${Math.round(s.unlockedValue)}` : `helps ${s.contributesTo}`}</span></div>`,
       ).join('') || '<p>Nothing blocking you right now.</p>';
+
+      const ideas = gear.serviceIdeas.flatMap((x) => x.ideas).slice(0, 4);
+      const buys = gear.investments.filter((i) => i.unlocksJobs > 0).slice(0, 2);
+      $('gear').innerHTML =
+        (ideas.length ? `<p class="m">Services you could offer today: ${ideas.map(esc).join(' · ')}</p>` : '') +
+        buys.map((i) => `<div class="step"><span>Buy or rent: ${esc(i.equipment.name)}</span><span>+${i.unlocksJobs} job · $${i.unlockedValue}</span></div>`).join('') ||
+        '<p>Add your equipment to see what it can earn.</p>';
+
+      const levelColor = { severe: 'var(--blocked)', undersupplied: 'var(--unlock)', balanced: 'var(--muted)', saturated: 'var(--muted)' };
+      $('gaps').innerHTML = gaps.byTrade.slice(0, 5).map((g) =>
+        `<div class="step"><span>${esc(g.tradeName)} <span class="m">(${esc(g.tier)} skill)</span></span>` +
+        `<span style="color:${levelColor[g.level]}">${g.qualifiedWorkers === 0 ? 'nobody qualified' : `${g.seatsOpen} seats / ${g.qualifiedWorkers} qualified`}</span></div>`,
+      ).join('');
     }
 
     $('jobs').addEventListener('click', (e) => {
