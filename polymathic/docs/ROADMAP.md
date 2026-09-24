@@ -1,7 +1,7 @@
 # Roadmap
 
 ## Phase 0: Foundation ✅ (this commit)
-Domain model, trust score, pay normalizer, matching, growth planner, connector framework, OAuth2/PKCE, USAJOBS live adapter, API with demo data, 29 tests.
+Domain model, trust score, pay normalizer, matching, growth planner, connector framework, OAuth2/PKCE, USAJOBS live adapter, API with demo data, interactive work map, 32 tests.
 
 ## Phase 1: Usable MVP for one metro, one set of trades
 - Postgres/PostGIS persistence, user accounts, org/crew accounts

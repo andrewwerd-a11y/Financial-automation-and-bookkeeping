@@ -76,6 +76,27 @@ describe('api', () => {
     expect(replay.statusCode).toBe(400);
   });
 
+  it('serves the map page and its bundled map library', async () => {
+    ({ app } = setup());
+    const page = await app.inject('/');
+    expect(page.statusCode).toBe(200);
+    expect(page.body).toContain('id="map"');
+    expect((await app.inject('/vendor/leaflet.js')).statusCode).toBe(200);
+    expect((await app.inject('/vendor/leaflet.css')).headers['content-type']).toContain('text/css');
+  });
+
+  it('lists workers for the map picker', async () => {
+    ({ app } = setup());
+    expect((await app.inject('/workers')).json().workers.map((w: any) => w.id)).toEqual(['w_alex', 'w_sam']);
+  });
+
+  it('shows out-of-range jobs only when asked for blocked jobs', async () => {
+    ({ app } = setup());
+    const ids = async (q: string) => (await app.inject(`/workers/w_alex/opportunities${q}`)).json().matches.map((m: any) => m.opportunity.id);
+    expect(await ids('')).not.toContain('pm_sa_tile');
+    expect(await ids('?includeIneligible=true')).toContain('pm_sa_tile');
+  });
+
   it('lists the integration catalog', async () => {
     ({ app } = setup());
     const body = (await app.inject('/integrations')).json();

@@ -10,16 +10,16 @@ It isn't meant to be another gig app. It's the layer that sits above all of them
 |---|---|
 | `packages/core` | Domain model, **trust score** (explainable, 0–100, five tiers), **pay normalizer** (fixed, hourly, or salary → effective hourly after fees, mileage, and drive time), **matching engine** (hard blockers plus a ranked score), **growth planner** (which cert, equipment, or skill unlocks the most real work) |
 | `packages/connectors` | Connector interface, OAuth2 + PKCE helpers, multi-source aggregation with cross-post de-duplication, the **integration catalog**, and adapters: Polymathic native jobs (live), USAJOBS (live), Upwork (OAuth scaffold) |
-| `apps/api` | Fastify API with demo data: matches, growth plan, job posting, OAuth connect flow |
+| `apps/api` | Fastify API with demo data: matches, growth plan, job posting, OAuth connect flow, and an **interactive work map** at `/` (OpenStreetMap + Leaflet, colour-coded jobs, travel radius, pay and blockers per pin, works on phones) |
 
 ## Quick start
 
 ```bash
 cd polymathic
 npm install
-npm test           # 29 tests
+npm test           # 32 tests
 npm run typecheck
-npm run dev        # http://localhost:4100
+npm run dev        # open http://localhost:4100 for the work map
 ```
 
 Try these:

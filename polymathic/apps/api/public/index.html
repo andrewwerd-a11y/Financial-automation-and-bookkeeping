@@ -1,0 +1,160 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Polymathic Work Map</title>
+  <link rel="stylesheet" href="/vendor/leaflet.css" />
+  <style>
+    :root {
+      --bg: #f6f7f9; --panel: #ffffff; --text: #1a1d23; --muted: #5d6573; --border: #e1e4ea;
+      --ok: #1f9d55; --unlock: #d98a00; --blocked: #8a93a3; --accent: #3056d3;
+    }
+    @media (prefers-color-scheme: dark) {
+      :root { --bg: #111318; --panel: #1a1d24; --text: #e8eaef; --muted: #9aa3b2; --border: #2b303a;
+        --ok: #3ccf7a; --unlock: #f0a92e; --blocked: #6b7382; --accent: #6d8cff; }
+    }
+    * { box-sizing: border-box; }
+    body { margin: 0; font: 14px/1.4 system-ui, -apple-system, sans-serif; background: var(--bg); color: var(--text); }
+    header { display: flex; flex-wrap: wrap; gap: 12px; align-items: center; padding: 10px 16px;
+      background: var(--panel); border-bottom: 1px solid var(--border); }
+    header h1 { font-size: 17px; margin: 0 8px 0 0; }
+    header label { display: flex; gap: 6px; align-items: center; color: var(--muted); }
+    select { font: inherit; padding: 4px 8px; border-radius: 6px; border: 1px solid var(--border); background: var(--bg); color: var(--text); }
+    #trust { margin-left: auto; font-weight: 600; }
+    main { display: grid; grid-template-columns: 1fr 380px; height: calc(100vh - 53px); }
+    #map { height: 100%; }
+    aside { overflow-y: auto; border-left: 1px solid var(--border); background: var(--panel); }
+    section { padding: 12px 16px; border-bottom: 1px solid var(--border); }
+    h2 { font-size: 12px; text-transform: uppercase; letter-spacing: .04em; color: var(--muted); margin: 0 0 8px; }
+    .legend { display: flex; gap: 12px; flex-wrap: wrap; color: var(--muted); font-size: 12px; }
+    .dot { display: inline-block; width: 10px; height: 10px; border-radius: 50%; margin-right: 4px; vertical-align: -1px; }
+    .job { padding: 10px; border: 1px solid var(--border); border-radius: 8px; margin-bottom: 8px; cursor: pointer; border-left-width: 4px; }
+    .job:hover { border-color: var(--accent); }
+    .job .t { font-weight: 600; }
+    .job .m { color: var(--muted); font-size: 12px; margin-top: 2px; }
+    .job .b { font-size: 12px; margin-top: 4px; color: var(--unlock); }
+    .pay { float: right; font-weight: 700; }
+    .step { display: flex; justify-content: space-between; gap: 8px; padding: 4px 0; }
+    .step span:last-child { color: var(--ok); font-weight: 600; white-space: nowrap; }
+    .leaflet-popup-content { font: 13px/1.4 system-ui, sans-serif; }
+    @media (max-width: 760px) {
+      main { grid-template-columns: 1fr; grid-template-rows: 55vh auto; height: auto; }
+      aside { border-left: 0; }
+      #trust { margin-left: 0; }
+    }
+  </style>
+</head>
+<body>
+  <header>
+    <h1>Polymathic</h1>
+    <label>Worker <select id="worker"></select></label>
+    <label><input type="checkbox" id="showBlocked" checked /> Show jobs I can't take yet</label>
+    <span id="trust"></span>
+  </header>
+  <main>
+    <div id="map" role="region" aria-label="Map of work opportunities"></div>
+    <aside>
+      <section>
+        <div class="legend">
+          <span><span class="dot" style="background:var(--ok)"></span>Can take now</span>
+          <span><span class="dot" style="background:var(--unlock)"></span>Unlockable</span>
+          <span><span class="dot" style="background:var(--blocked)"></span>Out of range / schedule</span>
+        </div>
+      </section>
+      <section><h2>Grow into more work</h2><div id="growth"></div></section>
+      <section><h2>Opportunities</h2><div id="jobs"></div></section>
+    </aside>
+  </main>
+  <script src="/vendor/leaflet.js"></script>
+  <script>
+    const css = (v) => getComputedStyle(document.documentElement).getPropertyValue(v).trim();
+    const map = L.map('map').setView([30.27, -97.74], 10);
+    L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', {
+      maxZoom: 19,
+      attribution: '&copy; OpenStreetMap contributors',
+    }).addTo(map);
+    const layer = L.layerGroup().addTo(map);
+    const markers = new Map();
+
+    const $ = (id) => document.getElementById(id);
+    const esc = (s) => String(s ?? '').replace(/[&<>"']/g, (c) => `&#${c.charCodeAt(0)};`);
+    const money = (n) => (n == null ? '—' : `$${n.toFixed(2)}/hr`);
+
+    function status(m) {
+      if (m.eligible) return 'ok';
+      return m.blockers.every((b) => b.unlockable) ? 'unlock' : 'blocked';
+    }
+
+    function popup(m) {
+      const o = m.opportunity;
+      const blockers = m.blockers.map((b) => `<li>${esc(b.detail)}</li>`).join('');
+      return `<strong>${esc(o.title)}</strong><br>
+        ${esc(o.location?.region ?? 'Remote')} · ${esc(o.engagement)} · ${esc(o.urgency)}<br>
+        Effective pay: <strong>${money(m.pay.effectiveHourly)}</strong>
+        ${m.distanceKm != null ? ` · ${m.distanceKm} km away` : ''}<br>
+        Match score: ${m.score}/100 · via ${esc(o.source.connectorId)}
+        ${blockers ? `<ul style="margin:6px 0 0;padding-left:18px">${blockers}</ul>` : ''}`;
+    }
+
+    async function load() {
+      const workerId = $('worker').value;
+      const showBlocked = $('showBlocked').checked;
+      const [profile, opps, growth] = await Promise.all([
+        fetch(`/workers/${workerId}`).then((r) => r.json()),
+        fetch(`/workers/${workerId}/opportunities?includeIneligible=${showBlocked}`).then((r) => r.json()),
+        fetch(`/workers/${workerId}/growth`).then((r) => r.json()),
+      ]);
+      const w = profile.worker;
+      $('trust').textContent = `Trust ${profile.trust.score}/100 · ${profile.trust.tier}`;
+
+      layer.clearLayers();
+      markers.clear();
+      const home = [w.home.lat, w.home.lng];
+      L.circle(home, { radius: w.availability.maxTravelKm * 1000, color: css('--accent'), weight: 1, fillOpacity: 0.05 }).addTo(layer);
+      L.circleMarker(home, { radius: 7, color: '#fff', weight: 2, fillColor: css('--accent'), fillOpacity: 1 })
+        .bindTooltip(`${w.displayName} (home)`).addTo(layer);
+
+      const bounds = L.latLngBounds([home]);
+      for (const m of opps.matches) {
+        const loc = m.opportunity.location;
+        if (!loc) continue;
+        const color = css(`--${status(m)}`);
+        const marker = L.circleMarker([loc.lat, loc.lng], { radius: 9, color: '#fff', weight: 2, fillColor: color, fillOpacity: 0.95 })
+          .bindPopup(popup(m)).addTo(layer);
+        markers.set(m.opportunity.id, marker);
+        bounds.extend([loc.lat, loc.lng]);
+      }
+      map.fitBounds(bounds.pad(0.2));
+
+      $('jobs').innerHTML = opps.matches.map((m) => {
+        const o = m.opportunity;
+        const blockers = m.blockers.map((b) => esc(b.detail)).join(' · ');
+        return `<div class="job" data-id="${esc(o.id)}" style="border-left-color:${css(`--${status(m)}`)}">
+          <span class="pay">${money(m.pay.effectiveHourly)}</span>
+          <div class="t">${esc(o.title)}</div>
+          <div class="m">${esc(o.location?.region ?? 'Remote')} · ${esc(o.engagement)} · score ${m.score}</div>
+          ${blockers ? `<div class="b" style="color:${css(`--${status(m)}`)}">${blockers}</div>` : ''}
+        </div>`;
+      }).join('') || '<p>No opportunities match yet.</p>';
+
+      $('growth').innerHTML = growth.plan.slice(0, 4).map((s) =>
+        `<div class="step"><span>${esc(s.label)}</span><span>${s.unlocksNow ? `+${s.unlocksNow} job · $${Math.round(s.unlockedValue)}` : `helps ${s.contributesTo}`}</span></div>`,
+      ).join('') || '<p>Nothing blocking you right now.</p>';
+    }
+
+    $('jobs').addEventListener('click', (e) => {
+      const card = e.target.closest('.job');
+      const marker = card && markers.get(card.dataset.id);
+      if (marker) { map.flyTo(marker.getLatLng(), 12); marker.openPopup(); }
+    });
+    $('worker').addEventListener('change', load);
+    $('showBlocked').addEventListener('change', load);
+
+    fetch('/workers').then((r) => r.json()).then(({ workers }) => {
+      $('worker').innerHTML = workers.map((w) => `<option value="${esc(w.id)}">${esc(w.displayName)}</option>`).join('');
+      load();
+    });
+  </script>
+</body>
+</html>

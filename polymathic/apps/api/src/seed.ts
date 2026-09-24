@@ -1,6 +1,10 @@
 import type { Opportunity, Place, TrustTier, WorkerProfile } from '@polymathic/core';
 
 const AUSTIN: Place = { lat: 30.2672, lng: -97.7431, region: 'Austin, TX' };
+const DOWNTOWN: Place = { lat: 30.2669, lng: -97.7428, region: 'Downtown Austin, TX' };
+const EAST_AUSTIN: Place = { lat: 30.2621, lng: -97.7152, region: 'East Austin, TX' };
+const NORTH_LAMAR: Place = { lat: 30.3521, lng: -97.7110, region: 'North Austin, TX' };
+const SOUTH_CONGRESS: Place = { lat: 30.2340, lng: -97.7560, region: 'South Austin, TX' };
 const ROUND_ROCK: Place = { lat: 30.5083, lng: -97.6789, region: 'Round Rock, TX' };
 const SAN_MARCOS: Place = { lat: 29.8833, lng: -97.9414, region: 'San Marcos, TX' };
 const SAN_ANTONIO: Place = { lat: 29.4241, lng: -98.4936, region: 'San Antonio, TX' };
@@ -85,7 +89,7 @@ export function seedData(now = new Date()) {
       category: 'handyman',
       engagement: 'gig',
       urgency: 'immediate',
-      location: AUSTIN,
+      location: DOWNTOWN,
       estimatedHours: 4,
       compensation: { kind: 'fixed', amount: 240, currency: 'USD' },
       requiredSkills: [{ id: 'furniture-assembly', minLevel: 2 }],
@@ -111,7 +115,7 @@ export function seedData(now = new Date()) {
       category: 'moving',
       engagement: 'gig',
       urgency: 'scheduled',
-      location: AUSTIN,
+      location: EAST_AUSTIN,
       startsAt: inHours(72),
       estimatedHours: 8,
       compensation: { kind: 'hourly', amount: 32, currency: 'USD' },
@@ -125,7 +129,7 @@ export function seedData(now = new Date()) {
       category: 'hvac',
       engagement: 'temp',
       urgency: 'scheduled',
-      location: AUSTIN,
+      location: NORTH_LAMAR,
       startsAt: inHours(96),
       estimatedHours: 40,
       compensation: { kind: 'hourly', amount: 27, currency: 'USD' },
@@ -138,7 +142,7 @@ export function seedData(now = new Date()) {
       category: 'handyman',
       engagement: 'contract',
       urgency: 'long_term',
-      location: AUSTIN,
+      location: SOUTH_CONGRESS,
       estimatedHours: 20,
       compensation: { kind: 'hourly', amount: 35, currency: 'USD' },
       requiredSkills: [{ id: 'drywall', minLevel: 2 }],

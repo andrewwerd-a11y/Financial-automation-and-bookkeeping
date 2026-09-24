@@ -37,8 +37,10 @@ describe('pay comparison', () => {
   it('turns a fixed-price job into an effective hourly after travel', () => {
     const p = estimatePay(opp('pm_assembly_now'), alex);
     expect(p.grossHourly).toBe(60);
-    expect(p.roundTripKm).toBe(0);
-    expect(p.effectiveHourly).toBe(60);
+    expect(p.roundTripKm).toBeGreaterThan(0);
+    expect(p.roundTripKm).toBeLessThan(1);
+    expect(p.effectiveHourly!).toBeLessThan(60);
+    expect(p.effectiveHourly!).toBeGreaterThan(59);
   });
 
   it('counts drive time and vehicle cost against distant jobs', () => {

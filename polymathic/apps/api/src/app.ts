@@ -1,4 +1,6 @@
 import { randomUUID } from 'node:crypto';
+import { readFileSync } from 'node:fs';
+import { createRequire } from 'node:module';
 import Fastify from 'fastify';
 import { computeTrust, growthPlan, rankOpportunities, type Opportunity } from '@polymathic/core';
 import {
@@ -15,6 +17,13 @@ import {
 import { MemoryStore } from './store.js';
 
 const PENDING_AUTH_TTL_MS = 10 * 60_000;
+
+const require = createRequire(import.meta.url);
+const STATIC_FILES: Record<string, { path: string; type: string }> = {
+  '/': { path: new URL('../public/index.html', import.meta.url).pathname, type: 'text/html; charset=utf-8' },
+  '/vendor/leaflet.js': { path: require.resolve('leaflet/dist/leaflet.js'), type: 'text/javascript' },
+  '/vendor/leaflet.css': { path: require.resolve('leaflet/dist/leaflet.css'), type: 'text/css' },
+};
 
 type JobDefaults = 'requiredCertifications' | 'requiredEquipment' | 'minTrustTier' | 'requiresBackgroundCheck' | 'headcount';
 type JobInput = Omit<Opportunity, 'id' | 'source' | JobDefaults> & Partial<Pick<Opportunity, JobDefaults>>;
@@ -48,6 +57,15 @@ export function buildApp(opts: AppOptions) {
 
   app.get('/health', async () => ({ ok: true }));
 
+  for (const [route, file] of Object.entries(STATIC_FILES)) {
+    const body = readFileSync(file.path);
+    app.get(route, async (_req, reply) => reply.type(file.type).send(body));
+  }
+
+  app.get('/workers', async () => ({
+    workers: [...store.workers.values()].map(({ id, displayName, home }) => ({ id, displayName, region: home.region })),
+  }));
+
   app.get('/integrations', async () => ({
     active: connectors.map(({ id, name, category, capabilities, auth }) => ({ id, name, category, capabilities, auth: auth.kind })),
     catalog: INTEGRATION_CATALOG,
@@ -65,14 +83,15 @@ export function buildApp(opts: AppOptions) {
       const worker = store.workers.get(req.params.id);
       if (!worker) return reply.code(404).send({ error: 'worker not found' });
 
-      const radiusKm = worker.availability.maxTravelKm;
+      // When showing jobs the worker can't take yet, widen the net so out-of-range work is visible too.
+      const includeIneligible = req.query.includeIneligible === 'true';
       const { opportunities, errors } = await aggregateOpportunities(connectors, contextFor(worker.id), {
         near: worker.home,
-        radiusKm,
-        includeRemote: worker.availability.remoteOk,
+        radiusKm: includeIneligible ? undefined : worker.availability.maxTravelKm,
+        includeRemote: includeIneligible || worker.availability.remoteOk,
       });
       const matches = rankOpportunities(worker, opportunities, {
-        includeIneligible: req.query.includeIneligible === 'true',
+        includeIneligible,
         limit: req.query.limit ? Number(req.query.limit) : undefined,
       });
       return { matches, sourceErrors: errors };

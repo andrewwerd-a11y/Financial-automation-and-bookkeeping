@@ -10,6 +10,7 @@
   "dependencies": {
     "@polymathic/connectors": "0.1.0",
     "@polymathic/core": "0.1.0",
-    "fastify": "^5.2.0"
+    "fastify": "^5.2.0",
+    "leaflet": "^1.9.4"
   }
 }
