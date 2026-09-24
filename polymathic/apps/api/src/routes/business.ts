@@ -315,6 +315,11 @@ export function businessRoutes(app: FastifyInstance, { store, now, market }: Bus
   function recordCompletion(eng: Engagement) {
     const job = store.opportunities.get(eng.opportunityId);
     if (!job) return;
+    // Every paid job teaches the pricing database what this work costs here.
+    if (job.serviceId && job.location) {
+      const quantity = [...store.requests.values()].find((r) => r.engagementId === eng.id)?.quantity ?? 1;
+      store.priceObservations.push({ serviceId: job.serviceId, unitPrice: eng.amount / quantity, location: { lat: job.location.lat, lng: job.location.lng }, at: now().toISOString(), source: 'paid_job' });
+    }
     for (const w of eng.workerIds) {
       const list = store.completedJobs.get(w) ?? [];
       list.push({ title: job.title, tradeId: job.category, completedAt: now().toISOString(), clientName: store.organizations.get(eng.clientId)?.name });
@@ -322,12 +327,8 @@ export function businessRoutes(app: FastifyInstance, { store, now, market }: Bus
     }
   }
 
-  function visibleReviews(): Review[] {
-    return store.reviews.filter((r) => {
-      const eng = store.engagements.get(r.engagementId);
-      return eng ? isVisible(r, eng, store.reviews, now()) : false;
-    });
-  }
+  const visibleReviews = () => store.visibleReviews(now());
+
 
   function view(eng: Engagement) {
     return { engagement: eng, escrow: escrowState(eng.status), payout: payoutBreakdown(eng) };

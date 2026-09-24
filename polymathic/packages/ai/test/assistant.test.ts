@@ -101,6 +101,12 @@ describe('platform tools', () => {
     expect(out).toContain('•••6789');
   });
 
+  it('prices services from a plain description', () => {
+    const est = JSON.parse(tools.get('price_check')!.run({ service: 'pressure wash my driveway' }));
+    expect(est.serviceId).toBe('pressure-wash-house');
+    expect(est.basis.region).toBe('Austin, TX');
+  });
+
   it('looks up trades by name fragment', () => {
     expect(JSON.parse(tools.get('trade_requirements')!.run({ trade: 'notary' }))[0].id).toBe('notary');
   });

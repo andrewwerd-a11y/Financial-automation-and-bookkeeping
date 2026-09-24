@@ -1,0 +1,157 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Find a Pro · Polymathic</title>
+  <meta name="description" content="Describe what you need done, see fair local prices, and get quotes from verified, background-checked pros. Payments held in escrow until the job is done." />
+  <link rel="icon" href="data:," />
+  <style>
+    :root { --bg:#f6f7f9; --panel:#fff; --text:#1a1d23; --muted:#5d6573; --border:#e1e4ea; --accent:#3056d3; --ok:#1f9d55; --warn:#d98a00; }
+    @media (prefers-color-scheme: dark) { :root { --bg:#111318; --panel:#1a1d24; --text:#e8eaef; --muted:#9aa3b2; --border:#2b303a; --accent:#6d8cff; --ok:#3ccf7a; --warn:#f0a92e; } }
+    * { box-sizing: border-box; }
+    body { margin:0; font:15px/1.5 system-ui,-apple-system,sans-serif; background:var(--bg); color:var(--text); }
+    nav { display:flex; gap:16px; align-items:center; padding:10px 16px; background:var(--panel); border-bottom:1px solid var(--border); }
+    nav strong { font-size:17px; margin-right:auto; }
+    nav a { color:var(--accent); text-decoration:none; }
+    main { max-width:860px; margin:0 auto; padding:16px; }
+    h1 { font-size:clamp(24px,4vw,34px); margin:16px 0 4px; }
+    .sub { color:var(--muted); margin:0 0 16px; }
+    .search { display:grid; gap:10px; background:var(--panel); border:1px solid var(--border); border-radius:12px; padding:14px; }
+    .row { display:flex; flex-wrap:wrap; gap:10px; align-items:center; }
+    textarea, input, select { font:inherit; padding:10px; border:1px solid var(--border); border-radius:8px; background:var(--bg); color:var(--text); }
+    textarea { width:100%; resize:vertical; }
+    button { font:600 15px system-ui; border:0; border-radius:8px; padding:10px 16px; background:var(--accent); color:#fff; cursor:pointer; }
+    button.secondary { background:transparent; color:var(--accent); border:1px solid var(--accent); }
+    .chip { display:inline-block; background:var(--bg); border:1px solid var(--border); border-radius:99px; padding:2px 10px; font-size:13px; margin:2px 4px 2px 0; }
+    .card { background:var(--panel); border:1px solid var(--border); border-radius:12px; padding:14px; margin:12px 0; }
+    .estimate strong { font-size:22px; }
+    .muted { color:var(--muted); font-size:13px; }
+    .pro { display:grid; grid-template-columns:1fr auto; gap:8px; align-items:start; }
+    .pro h3 { margin:0 0 4px; font-size:17px; }
+    .pro .actions { display:grid; gap:6px; justify-items:end; }
+    .pro a { color:var(--accent); font-size:14px; }
+    .ok { color:var(--ok); } .warn { color:var(--warn); }
+    label.inline { display:flex; gap:6px; align-items:center; color:var(--muted); }
+    @media (max-width:560px) { .pro { grid-template-columns:1fr; } .pro .actions { justify-items:start; grid-auto-flow:column; } }
+  </style>
+</head>
+<body>
+  <nav><strong>Polymathic</strong><a href="/find">Find a pro</a><a href="/">Work map</a></nav>
+  <main>
+    <h1>What do you need done?</h1>
+    <p class="sub">Verified pros, fair local prices, and payment held safely until the job is finished.</p>
+
+    <form class="search" id="searchForm">
+      <textarea id="q" rows="2" placeholder="e.g. My kitchen faucet is leaking, or I need my garage cleaned out" required></textarea>
+      <div class="row">
+        <select id="city" aria-label="Location"></select>
+        <button type="button" class="secondary" id="locate">Use my location</button>
+        <label class="inline"><input type="checkbox" id="now" /> Available now</label>
+        <button type="submit">Find pros</button>
+      </div>
+    </form>
+
+    <div id="interpreted"></div>
+    <div id="estimate"></div>
+    <div id="results"></div>
+
+    <div class="card" id="requestCard" hidden>
+      <h2 style="margin-top:0">Request quotes</h2>
+      <p class="muted" id="invited"></p>
+      <div class="row">
+        <select id="timing" aria-label="Timing">
+          <option value="asap">As soon as possible</option><option value="this_week">This week</option><option value="flexible">I'm flexible</option>
+        </select>
+        <input id="qty" type="number" min="1" step="1" placeholder="Quantity" aria-label="Quantity" style="width:120px" />
+        <input id="budget" type="number" min="1" placeholder="Budget (optional)" aria-label="Budget" style="width:170px" />
+        <button id="send">Send request</button>
+      </div>
+      <div id="sent"></div>
+    </div>
+  </main>
+  <script>
+    // Demo identity; replaced by real sign-in.
+    const CUSTOMER = 'c_jordan';
+    const CITIES = [
+      ['Austin, TX', 30.2672, -97.7431], ['Round Rock, TX', 30.5083, -97.6789], ['Pflugerville, TX', 30.4394, -97.62],
+      ['San Marcos, TX', 29.8833, -97.9414], ['San Antonio, TX', 29.4241, -98.4936],
+    ];
+    const $ = (id) => document.getElementById(id);
+    const esc = (s) => String(s ?? '').replace(/[&<>"']/g, (c) => `&#${c.charCodeAt(0)};`);
+    const money = (n) => '$' + Math.round(n).toLocaleString('en-US');
+    const UNIT = { job:'per job', hour:'per hour', visit:'per visit', day:'per day', month:'per month', room:'per room', item:'per item', sqft:'per sq ft', linear_ft:'per linear ft', guest:'per guest' };
+    let place = { lat: CITIES[0][1], lng: CITIES[0][2], region: CITIES[0][0] };
+    let lastSearch = null;
+    const invited = new Set();
+
+    $('city').innerHTML = CITIES.map(([n], i) => `<option value="${i}">${esc(n)}</option>`).join('');
+    $('city').addEventListener('change', (e) => { const c = CITIES[e.target.value]; place = { lat: c[1], lng: c[2], region: c[0] }; });
+    $('locate').addEventListener('click', () => navigator.geolocation?.getCurrentPosition((pos) => {
+      place = { lat: pos.coords.latitude, lng: pos.coords.longitude, region: 'Near me' };
+      $('locate').textContent = 'Using your location';
+    }));
+
+    $('searchForm').addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const params = new URLSearchParams({ q: $('q').value, lat: place.lat, lng: place.lng, region: place.region, availableNow: $('now').checked });
+      const data = await fetch(`/providers/search?${params}`).then((r) => r.json());
+      lastSearch = data;
+      invited.clear();
+      render(data);
+    });
+
+    function render(data) {
+      $('interpreted').innerHTML = data.interpretedAs.length
+        ? `<p class="muted">Looks like: ${data.interpretedAs.map((m) => `<span class="chip">${esc(m.name)}</span>`).join('')}</p>` : '';
+      const est = data.estimate;
+      $('estimate').innerHTML = est ? `<div class="card estimate">
+          <div class="muted">Typical price for ${esc(est.serviceName)}${est.basis.region ? ` in ${esc(est.basis.region)}` : ''}</div>
+          <strong>${money(est.perUnit.low)}–${money(est.perUnit.high)}</strong> <span class="muted">${esc(UNIT[est.unit] || '')} · most pay about ${money(est.perUnit.typical)}</span>
+          <div class="muted">${est.basis.localObservations ? `Based on ${est.basis.localObservations} recent local jobs plus regional data` : 'Based on regional pricing data'} · confidence ${esc(est.basis.confidence)}</div>
+        </div>` : '';
+      $('qty').hidden = !est || est.unit === 'job';
+      $('qty').value = '';
+      $('qty').placeholder = est ? `How many (${(UNIT[est.unit] || '').replace('per ', '')}s)` : 'Quantity';
+      $('results').innerHTML = data.results.length ? data.results.map((r) => {
+        const p = r.provider;
+        return `<div class="card pro">
+          <div>
+            <h3>${esc(p.name)} ${p.trustTier ? `<span class="chip">${esc(p.trustTier)}</span>` : ''}</h3>
+            <div class="muted">${esc(p.home.region)} · ${r.distanceKm} km away</div>
+            <div>${r.reasons.map((x) => `<span class="chip">${esc(x)}</span>`).join('')}</div>
+          </div>
+          <div class="actions">
+            <button class="secondary" data-invite="${esc(p.id)}">Ask for a quote</button>
+            ${r.siteUrl ? `<a href="${esc(r.siteUrl)}" target="_blank" rel="noopener">View website</a>` : ''}
+          </div>
+        </div>`;
+      }).join('') : '<div class="card">No matching pros nearby yet. Send a request anyway and we will notify pros as they join.</div>';
+      $('requestCard').hidden = false;
+      $('invited').textContent = 'Every matching pro nearby can quote. Pros you ask directly are notified first.';
+      $('sent').innerHTML = '';
+    }
+
+    $('results').addEventListener('click', (e) => {
+      const id = e.target.dataset?.invite;
+      if (!id) return;
+      invited.has(id) ? invited.delete(id) : invited.add(id);
+      e.target.textContent = invited.has(id) ? 'Will be asked ✓' : 'Ask for a quote';
+      const names = lastSearch.results.filter((r) => invited.has(r.provider.id)).map((r) => r.provider.name);
+      $('invited').textContent = names.length ? `Asking: ${names.join(', ')}` : 'Every matching pro nearby can quote.';
+    });
+
+    $('send').addEventListener('click', async () => {
+      const body = { description: $('q').value, location: place, timing: $('timing').value, invitedProviderIds: [...invited] };
+      if ($('qty').value) body.quantity = Number($('qty').value);
+      if ($('budget').value) body.budget = Number($('budget').value);
+      const res = await fetch('/requests', { method: 'POST', headers: { 'content-type': 'application/json', 'x-user-id': CUSTOMER }, body: JSON.stringify(body) });
+      const data = await res.json();
+      if (!res.ok) { $('sent').innerHTML = `<p class="warn">${esc(data.error || 'Please check your request.')}</p>`; return; }
+      const est = data.estimate;
+      $('sent').innerHTML = `<p class="ok">Request sent. ${data.providers.length} pro${data.providers.length === 1 ? '' : 's'} can see it.</p>
+        ${est ? `<p class="muted">Expected total: ${money(est.total.low)}–${money(est.total.high)}. We'll flag any quote that's far from this.</p>` : ''}`;
+    });
+  </script>
+</body>
+</html>

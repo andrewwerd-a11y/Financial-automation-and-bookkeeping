@@ -40,7 +40,7 @@ export function assistantRoutes(app: FastifyInstance, { store, vault, market, cl
       try {
         const result = await runAssistant({
           client,
-          context: { worker, opportunities: await market(), workers: [...store.workers.values()], vault },
+          context: { worker, opportunities: await market(), workers: [...store.workers.values()], vault, priceObservations: store.priceObservations },
           history: store.conversations.get(user),
           message: req.body.message,
           mode: req.body.mode,

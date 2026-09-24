@@ -9,6 +9,7 @@
     "packages/connectors",
     "packages/vault",
     "packages/ai",
+    "packages/sites",
     "apps/api"
   ],
   "engines": {
@@ -18,7 +19,8 @@
     "dev": "npm run dev -w @polymathic/api",
     "typecheck": "tsc -p tsconfig.json --noEmit",
     "test": "vitest run",
-    "test:watch": "vitest"
+    "test:watch": "vitest",
+    "start": "npm run start -w @polymathic/api"
   },
   "devDependencies": {
     "@types/node": "^22.10.0",

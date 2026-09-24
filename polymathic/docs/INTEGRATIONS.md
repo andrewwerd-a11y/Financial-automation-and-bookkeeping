@@ -34,6 +34,9 @@ Note: aggregators give us a worker's *history and earnings*, not those platforms
 | Document import | Google Drive / Dropbox OAuth, email forwarding, phone camera + OCR | Planned |
 | Books & taxes | Plaid bank feeds, QuickBooks / Xero sync, quarterly estimate reminders | Planned |
 | Advertising & local search | Google Business Profile, Meta ads, schema.org structured data on hosted storefronts | Planned |
+| Provider websites | Hosted at `/s/:slug` with schema.org data + sitemap; custom domains via Cloudflare/Vercel API; Google Business Profile sync | Hosted sites built; domains planned |
+| Pricing data | Built-in pricing database learning from paid jobs; later imports (e.g. published cost guides, BLS wage data) as `import` observations | Built |
+| Notifications | Resend/Postmark (email) and Twilio (SMS) for new requests, quotes, escrow events | Planned |
 | Growth research data | US DOL CareerOneStop (programs, licenses, certifications by state) plus web search | Planned |
 
 ## Accounts and keys we'll need

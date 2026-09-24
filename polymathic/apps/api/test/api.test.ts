@@ -87,7 +87,7 @@ describe('api', () => {
 
   it('lists workers for the map picker', async () => {
     ({ app } = setup());
-    expect((await app.inject('/workers')).json().workers.map((w: any) => w.id)).toEqual(['w_alex', 'w_sam', 'w_maria']);
+    expect((await app.inject('/workers')).json().workers.map((w: any) => w.id)).toEqual(['w_alex', 'w_sam', 'w_maria', 'w_devon', 'w_kim', 'w_luis', 'w_tasha']);
   });
 
   it('shows out-of-range jobs only when asked for blocked jobs', async () => {

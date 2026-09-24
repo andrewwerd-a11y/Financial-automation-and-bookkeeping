@@ -10,3 +10,5 @@ export * from './market.js';
 export * from './engagement.js';
 export * from './reviews.js';
 export * from './resume.js';
+export * from './pricing.js';
+export * from './marketplace.js';

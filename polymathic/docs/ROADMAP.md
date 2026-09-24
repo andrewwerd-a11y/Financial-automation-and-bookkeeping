@@ -14,8 +14,16 @@ Domain model, trust score, pay normalizer, matching, growth planner, connector f
 - Claude assistant with platform tools: business plans, growth research with web search, paperwork
 - Business and crew side: orgs, job posting with a live supply preview, ranked candidates
 
+## Phase 0.75: Customer side ✅
+- Pricing database (69 services across 60 trades, regional index, learns from paid jobs)
+- Plain-language request classification, provider search, quotes with market position, accepted quote → escrow job
+- Auto-built provider websites with SEO structured data, sitemap, and guest quote form (rate-limited)
+- Customer "Find a pro" page; one-click Render deploy blueprint
+
 ## Phase 1: Usable MVP for one metro
 - Real sign-in (passkeys/OAuth), Postgres/PostGIS, KMS-held vault keys
+- Custom domains for provider websites (Cloudflare or Vercel domains API), photo uploads to object storage
+- Email/SMS notifications for new requests and quotes (guests get a link to accept quotes)
 - Web dashboard: feed, compare view, profile/trust, vault, assistant chat, business console
 - Stripe Connect escrow + payouts; 1099 reporting
 - Document intake: photo/PDF upload → OCR → vault with auto-detected expiry

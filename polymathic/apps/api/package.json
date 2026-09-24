@@ -12,8 +12,10 @@
     "@polymathic/ai": "0.1.0",
     "@polymathic/connectors": "0.1.0",
     "@polymathic/core": "0.1.0",
+    "@polymathic/sites": "0.1.0",
     "@polymathic/vault": "0.1.0",
     "fastify": "^5.2.0",
-    "leaflet": "^1.9.4"
+    "leaflet": "^1.9.4",
+    "tsx": "^4.23.15"
   }
 }

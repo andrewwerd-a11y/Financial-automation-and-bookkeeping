@@ -1,13 +1,17 @@
 import type Anthropic from '@anthropic-ai/sdk';
 import {
   TRADES,
+  classifyRequest,
   computeTrust,
+  estimatePrice,
+  getService,
   entryOptions,
   equipmentReport,
   getTrade,
   growthPlan,
   marketSnapshot,
   type Opportunity,
+  type PriceObservation,
   type WorkerProfile,
 } from '@polymathic/core';
 import { FORM_TEMPLATES, autofill, type Vault } from '@polymathic/vault';
@@ -19,6 +23,8 @@ export interface AssistantContext {
   /** Worker pool used for supply-side gap analysis. */
   workers: WorkerProfile[];
   vault: Vault;
+  /** Real local prices from the platform, for price checks. */
+  priceObservations?: PriceObservation[];
 }
 
 export interface PlatformTool {
@@ -49,7 +55,7 @@ const json = (x: unknown) => JSON.stringify(x);
  * sees the signed-in user's vault, and sensitive fields stay masked.
  */
 export function platformTools(ctx: AssistantContext): PlatformTool[] {
-  const { worker, opportunities, workers, vault } = ctx;
+  const { worker, opportunities, workers, vault, priceObservations } = ctx;
   const access = (purpose: string) => ({ actor: 'assistant', purpose });
 
   return [
@@ -145,6 +151,24 @@ export function platformTools(ctx: AssistantContext): PlatformTool[] {
       run: () => {
         const r = equipmentReport(worker, opportunities);
         return json({ ...r, equippedFor: r.equippedFor.map((x) => ({ trade: x.trade.name, missingCertifications: x.missingCertifications })), investments: r.investments.slice(0, 8) });
+      },
+    },
+    {
+      definition: {
+        name: 'price_check',
+        description:
+          "Local price range for a service from the Polymathic pricing database (regional seed data blended with real jobs paid nearby). Pass a service id or a plain description like \"pressure wash a driveway\", and optionally a quantity in the service's unit. Near the user's home by default.",
+        input_schema: {
+          type: 'object',
+          properties: { service: { type: 'string' }, quantity: { type: 'number' } },
+          required: ['service'],
+        },
+      },
+      run: (input) => {
+        const q = str(input, 'service')!;
+        const serviceId = getService(q) ? q : classifyRequest(q)[0]?.serviceId;
+        if (!serviceId) throw new ToolInputError(`No priced service matches "${q}"`);
+        return json(estimatePrice(serviceId, { location: worker.home, quantity: num(input, 'quantity', 1), observations: priceObservations }));
       },
     },
     {

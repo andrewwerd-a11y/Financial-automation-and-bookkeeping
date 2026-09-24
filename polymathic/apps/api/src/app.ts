@@ -18,6 +18,7 @@ import type { MessagesClient } from '@polymathic/ai';
 import { MemoryVaultStorage, Vault, ephemeralKeyring, keyringFromEnv } from '@polymathic/vault';
 import { assistantRoutes } from './routes/assistant.js';
 import { businessRoutes } from './routes/business.js';
+import { marketplaceRoutes } from './routes/marketplace.js';
 import { vaultRoutes } from './routes/vault.js';
 import { JOB_BODY_SCHEMA, type JobInput } from './jobs.js';
 import { MemoryStore } from './store.js';
@@ -27,6 +28,7 @@ const PENDING_AUTH_TTL_MS = 10 * 60_000;
 const require = createRequire(import.meta.url);
 const STATIC_FILES: Record<string, { path: string; type: string }> = {
   '/': { path: new URL('../public/index.html', import.meta.url).pathname, type: 'text/html; charset=utf-8' },
+  '/find': { path: new URL('../public/find.html', import.meta.url).pathname, type: 'text/html; charset=utf-8' },
   '/vendor/leaflet.js': { path: require.resolve('leaflet/dist/leaflet.js'), type: 'text/javascript' },
   '/vendor/leaflet.css': { path: require.resolve('leaflet/dist/leaflet.css'), type: 'text/css' },
 };
@@ -71,6 +73,7 @@ export function buildApp(opts: AppOptions) {
   app.get('/health', async () => ({ ok: true }));
 
   businessRoutes(app, { store, now, market });
+  marketplaceRoutes(app, { store, now, baseUrl });
   vaultRoutes(app, { vault });
   assistantRoutes(app, { store, vault, market, client: opts.aiClient });
 

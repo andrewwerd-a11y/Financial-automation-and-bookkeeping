@@ -92,6 +92,8 @@ export interface WorkerProfile {
   vehicleCostPerKm?: number;
   /** Trades or categories the worker wants to grow into. */
   growthInterests?: string[];
+  /** Trade ids the worker offers to customers (drives provider search and their website). */
+  offers?: string[];
 }
 
 export type EngagementType = 'gig' | 'contract' | 'temp' | 'full_time';
@@ -144,6 +146,8 @@ export interface Opportunity {
   headcount: number;
   /** Organization that posted it, when posted on Polymathic by a business or crew. */
   postedBy?: string;
+  /** Pricing-database service this job corresponds to, when known. */
+  serviceId?: string;
 }
 
 export type OrgRole = 'owner' | 'admin' | 'dispatcher' | 'lead' | 'member';
