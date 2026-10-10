@@ -1,5 +1,7 @@
 # Financial Automation & Bookkeeping Platform
 
+> **Polymathic has moved.** The self-employment platform that was started in a `polymathic/` folder on the `claude/self-employment-platform-na9ali` branch of this repository now lives in its own repository: [andrewwerd-a11y/Self-employment-platform](https://github.com/andrewwerd-a11y/Self-employment-platform). Its four original commits were carried over with their history intact (verified commit by commit and file by file; see `docs/AUDIT.md` there). The old branch here is kept unchanged as a historical record. Nothing in this project depends on it.
+
 A local-first, single-operator financial intake and bookkeeping automation tool.
 Runs fully offline — no external services required beyond Node.js.
 
